@@ -3,18 +3,20 @@ extern crate hyper;
 extern crate hyper_rustls;
 extern crate serde_derive;
 
-use std::io;
+use std::collections::HashMap;
 use std::default::Default;
 use std::fs::File;
+use std::io;
 use std::path::Path;
 
 use calendar3::{Error, Event, EventDateTime};
 use calendar3::CalendarHub;
-use chrono::{DateTime, Duration, TimeZone, Utc};
+use chrono::{Date, DateTime, Duration, TimeZone, Utc};
 use hyper::{Client, net::HttpsConnector};
 use hyper_native_tls::NativeTlsClient;
-use reqwest::header::{ACCEPT, COOKIE, DNT, HeaderMap, REFERER, USER_AGENT};
-use serde::{Deserialize, de};
+use reqwest::header::{ACCEPT, ACCEPT_LANGUAGE, CACHE_CONTROL, COOKIE, DNT, HeaderMap, HeaderName, REFERER, UPGRADE_INSECURE_REQUESTS, USER_AGENT};
+use scraper::{ElementRef, Html, Selector};
+use serde::{de, Deserialize};
 use serde_json as json;
 use serde_json::Number;
 use yup_oauth2::{Authenticator, ConsoleApplicationSecret, DefaultAuthenticatorDelegate, DiskTokenStorage, FlowType};
@@ -26,6 +28,12 @@ struct SimpleEvent {
     description: String,
     start: DateTime<Utc>,
     end: DateTime<Utc>,
+}
+
+struct SimpleWholeDayEvent {
+    summary: String,
+    description: String,
+    date: Date<Utc>,
 }
 
 impl From<SimpleEvent> for Event {
@@ -46,7 +54,25 @@ impl From<SimpleEvent> for Event {
     }
 }
 
-fn calendar_post(hub: &CalHub, config: &BilibiliConfig, req: Event) {
+impl From<SimpleWholeDayEvent> for Event {
+    fn from(item: SimpleWholeDayEvent) -> Self {
+        Event {
+            summary: Some(item.summary),
+            description: Some(item.description),
+            start: Some(EventDateTime {
+                date: Some(item.date.format("%Y-%m-%d").to_string()),
+                ..EventDateTime::default()
+            }),
+            end: Some(EventDateTime {
+                date: Some(item.date.format("%Y-%m-%d").to_string()),
+                ..EventDateTime::default()
+            }),
+            ..Event::default()
+        }
+    }
+}
+
+fn calendar_post(hub: &CalHub, config: &RequestConfig, req: Event) {
     let result = hub.events().insert(req, config.calendar_id.as_str()).doit();
 
     match result {
@@ -79,6 +105,10 @@ fn init_hub() -> CalHub {
     hub
 }
 
+trait HistoryItem {
+    fn hash(&self) -> String;
+}
+
 #[derive(Debug, Deserialize)]
 struct BilibiliPage2 {
     cid: Number,
@@ -98,6 +128,12 @@ struct BilibiliHistoryItem {
     view_at: Number,
 }
 
+impl HistoryItem for BilibiliHistoryItem {
+    fn hash(self: &BilibiliHistoryItem) -> String {
+        format!("bilibili|{}|{}|{}", self.bvid, self.page.page, self.view_at)
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct BilibiliResponse {
     code: Number,
@@ -105,22 +141,33 @@ struct BilibiliResponse {
 }
 
 #[derive(Debug, Deserialize)]
-struct Headers {
-    user_agent: String,
-    accept: String,
-    dnt: String,
-    referer: String,
-    cookie: String,
+struct NetflixHistoryItem {
+    link: String,
+    title: String,
+    date: String,
+}
+
+impl HistoryItem for NetflixHistoryItem {
+    fn hash(self: &NetflixHistoryItem) -> String {
+        let paths = self.link.split("/").collect::<Vec<&str>>();
+        let id = paths[2].parse::<u32>().unwrap();
+        format!("netflix|{}|{}", id, self.date)
+    }
 }
 
 #[derive(Debug, Deserialize)]
-struct BilibiliConfigJson {
-    url: String,
-    calendar_id: String,
-    headers: Headers,
+struct NetflixResponse {
+    data: Vec<NetflixHistoryItem>,
 }
 
-struct BilibiliConfig {
+#[derive(Debug, Deserialize)]
+struct RequestConfigJson {
+    url: String,
+    calendar_id: String,
+    headers: HashMap<String, String>,
+}
+
+struct RequestConfig {
     url: String,
     calendar_id: String,
     headers: HeaderMap,
@@ -130,8 +177,16 @@ struct BilibiliConfig {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hub = init_hub();
     let bilibili_config = init_bilibili();
-    let data = get_bilibili(&bilibili_config).await?.data;
+    let netflix_config = init_netflix();
 
+    post_bilibili_to_calendar(&hub, &bilibili_config).await;
+    post_netflix_to_calendar(&hub, &netflix_config).await;
+
+    Ok(())
+}
+
+async fn post_bilibili_to_calendar(hub: &CalHub, config: &RequestConfig) -> Result<(), Box<dyn std::error::Error>> {
+    let data = get_bilibili(&config).await?.data;
     for item in data.iter() {
         let view_duration = match item.progress.as_i64().unwrap() {
             -1 => &item.page.duration,
@@ -139,11 +194,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         let req: Event = SimpleEvent {
             summary: format!("[Bilibili] {}", item.title),
-            description: format!("[link] {}\n[bvid] {}\n[hash] {}", item.redirect_link, item.bvid, 0),
+            description: format!("[link] {}\n[bvid] {}\n[hash] {}", item.redirect_link, item.bvid, item.hash()),
             start: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap()),
             end: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap() + view_duration.as_i64().unwrap()),
         }.into();
-        calendar_post(&hub, &bilibili_config, req);
+        calendar_post(&hub, &config, req);
+    }
+
+    Ok(())
+}
+
+async fn post_netflix_to_calendar(hub: &CalHub, config: &RequestConfig) -> Result<(), Box<dyn std::error::Error>> {
+    let data = get_netflix(&config).await?.data;
+    for item in data.iter().take(5) {
+        let date_info: Vec<u32> = item.date.split("/").collect::<Vec<&str>>().iter().map(|s: &&str| s.parse::<u32>().unwrap()).collect();
+        let req: Event = SimpleWholeDayEvent {
+            summary: format!("[Netflix] {}", item.title),
+            description: format!("[link] https://www.netflix.com{}\n[hash] {}", item.link, item.hash()),
+            date: Utc.ymd((2000 + date_info[2]) as i32, date_info[0], date_info[1]),
+        }.into();
+        calendar_post(&hub, &config, req);
     }
 
     Ok(())
@@ -161,32 +231,24 @@ fn read_json<T: de::DeserializeOwned>(file_path: &str) -> Result<T, io::Error> {
     }
 }
 
-fn init_bilibili() -> BilibiliConfig {
-    let mut config = BilibiliConfig {
+fn init_bilibili() -> RequestConfig {
+    let mut config = RequestConfig {
         url: String::from(""),
         calendar_id: String::from(""),
         headers: HeaderMap::new(),
     };
 
-    match read_json::<BilibiliConfigJson>("config/bilibili.json.default") {
+    match read_json::<RequestConfigJson>("config/bilibili.json.default") {
         Ok(default_config) => {
-            config.headers.insert(USER_AGENT, default_config.headers.user_agent.parse().unwrap());
-            config.headers.insert(ACCEPT, default_config.headers.cookie.parse().unwrap());
-            config.headers.insert(DNT, default_config.headers.dnt.parse().unwrap());
-            config.headers.insert(REFERER, default_config.headers.referer.parse().unwrap());
-            config.headers.insert(COOKIE, default_config.headers.cookie.parse().unwrap());
+            headers_modifier(&default_config.headers, &mut config.headers);
             config.url = default_config.url;
             config.calendar_id = default_config.calendar_id;
         },
         Err(e) => panic!("Default bilibili config not found! {}", e),
     }
-    match read_json::<BilibiliConfigJson>("config/bilibili.json") {
+    match read_json::<RequestConfigJson>("config/bilibili.json") {
         Ok(custom_config) => {
-            config.headers.insert(USER_AGENT, custom_config.headers.user_agent.parse().unwrap());
-            config.headers.insert(ACCEPT, custom_config.headers.cookie.parse().unwrap());
-            config.headers.insert(DNT, custom_config.headers.dnt.parse().unwrap());
-            config.headers.insert(REFERER, custom_config.headers.referer.parse().unwrap());
-            config.headers.insert(COOKIE, custom_config.headers.cookie.parse().unwrap());
+            headers_modifier(&custom_config.headers, &mut config.headers);
             config.url = custom_config.url;
             config.calendar_id = custom_config.calendar_id;
         }
@@ -196,7 +258,7 @@ fn init_bilibili() -> BilibiliConfig {
     config
 }
 
-async fn get_bilibili(config: &BilibiliConfig) -> Result<BilibiliResponse, Box<dyn std::error::Error>> {
+async fn get_bilibili(config: &RequestConfig) -> Result<BilibiliResponse, Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
     let headers = config.headers.clone();
     let resp: BilibiliResponse = client.get(&config.url)
@@ -206,4 +268,86 @@ async fn get_bilibili(config: &BilibiliConfig) -> Result<BilibiliResponse, Box<d
         .json::<BilibiliResponse>()
         .await?;
     Ok(resp)
+}
+
+fn init_netflix() -> RequestConfig {
+    let mut config = RequestConfig {
+        url: String::from(""),
+        calendar_id: String::from(""),
+        headers: HeaderMap::new(),
+    };
+
+    match read_json::<RequestConfigJson>("config/netflix.json.default") {
+        Ok(default_config) => {
+            headers_modifier(&default_config.headers, &mut config.headers);
+            config.url = default_config.url;
+            config.calendar_id = default_config.calendar_id;
+        },
+        Err(e) => panic!("Default netflix config not found! {}", e),
+    }
+    match read_json::<RequestConfigJson>("config/netflix.json") {
+        Ok(custom_config) => {
+            headers_modifier(&custom_config.headers, &mut config.headers);
+            config.url = custom_config.url;
+            config.calendar_id = custom_config.calendar_id;
+        }
+        Err(e) => println!("Netflix config file not found, falling back to default file. {}", e),
+    }
+
+    config
+}
+
+async fn get_netflix(config: &RequestConfig) -> Result<NetflixResponse, Box<dyn std::error::Error>> {
+    let client = reqwest::Client::new();
+    let headers = config.headers.clone();
+    let resp: String = client.get(&config.url)
+        .headers(headers)
+        .send()
+        .await?
+        .text()
+        .await?;
+
+    let document = Html::parse_document(resp.as_str());
+    let selector = Selector::parse("li.retableRow").unwrap();
+    let title_selector = Selector::parse("div.title").unwrap();
+    let date_selector = Selector::parse("div.date").unwrap();
+    let link_selector = Selector::parse("a").unwrap();
+
+    Ok(NetflixResponse {
+        data: document.select(&selector).map(|e: ElementRef| {
+            let link_element = e.select(&title_selector).next().unwrap().select(&link_selector).next().unwrap();
+            NetflixHistoryItem {
+                link: String::from(link_element.value().attr("href").unwrap()),
+                title: link_element.inner_html(),
+                date: e.select(&date_selector).next().unwrap().inner_html(),
+            }
+        }).collect()
+    })
+}
+
+fn headers_modifier(headers: &HashMap<String, String>, header_map: &mut HeaderMap) {
+    let header_dict: HashMap<&str, HeaderName> = get_header_dict();
+
+    for key in headers.keys() {
+        match header_dict.get(key.as_str()) {
+            Some(header) => {
+                header_map.insert(header, headers[key].parse().unwrap());
+            },
+            None => panic!("Unknown header {}.", key),
+        }
+    }
+}
+
+fn get_header_dict() -> HashMap<&'static str, HeaderName> {
+    let mut dict = HashMap::<&str, HeaderName>::new();
+    dict.insert("accept",                    ACCEPT);
+    dict.insert("accept-language",           ACCEPT_LANGUAGE);
+    dict.insert("cache-control",             CACHE_CONTROL);
+    dict.insert("cookie",                    COOKIE);
+    dict.insert("dnt",                       DNT);
+    dict.insert("referer",                   REFERER);
+    dict.insert("upgrade-insecure-requests", UPGRADE_INSECURE_REQUESTS);
+    dict.insert("user-agent",                USER_AGENT);
+
+    dict
 }

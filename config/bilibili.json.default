@@ -2,10 +2,10 @@
   "calendar_id": "@group.calendar.google.com",
   "url": "https://api.bilibili.com/x/v2/history?pn=1&ps=10&jsonp=jsonp",
   "headers": {
-    "user_agent": "Mozilla/5.0",
     "accept": "*/*",
+    "cookie": "Cookie: ",
     "dnt": "1",
     "referer": "https://www.bilibili.com/account/history",
-    "cookie": "Cookie: "
+    "user-agent": "Mozilla/5.0"
   }
 }

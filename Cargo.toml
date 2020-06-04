@@ -22,3 +22,4 @@ cmd_lib = "0.7.8"
 chrono = "*"
 reqwest = { version = "0.10", features = ["json"] }
 tokio = { version = "0.2", features = ["full"] }
+scraper = "0.12.0"
