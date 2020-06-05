@@ -6,12 +6,11 @@ use std::path::Path;
 use calendar3::{Event, EventDateTime};
 use chrono::{Date, DateTime, Utc};
 use reqwest::header::*;
+use reqwest::Response;
 use serde::{de, Deserialize};
 use serde_json as json;
 
-pub trait HistoryItem {
-    fn hash(&self) -> String;
-}
+use async_trait::async_trait;
 
 #[derive(Debug, Deserialize)]
 pub struct RequestConfigJson {
@@ -24,6 +23,42 @@ pub struct RequestConfig {
     pub url: String,
     pub calendar_id: String,
     pub headers: HeaderMap,
+}
+
+impl RequestConfig {
+    pub(crate) fn new(source: &str) -> RequestConfig {
+        let mut config = RequestConfig {
+            url: String::from(""),
+            calendar_id: String::from(""),
+            headers: HeaderMap::new(),
+        };
+
+        match read_json::<RequestConfigJson>(format!("config/{}.json.default", source).as_str()) {
+            Ok(default_config) => {
+                headers_modifier(&default_config.headers, &mut config.headers);
+                config.url = default_config.url;
+                config.calendar_id = default_config.calendar_id;
+            },
+            Err(e) => panic!("Default {} config not found! {}", source, e),
+        }
+        match read_json::<RequestConfigJson>(format!("config/{}.json", source).as_str()) {
+            Ok(custom_config) => {
+                headers_modifier(&custom_config.headers, &mut config.headers);
+                config.url = custom_config.url;
+                config.calendar_id = custom_config.calendar_id;
+            }
+            Err(e) => println!("{} config file not found, falling back to default file. {}", source, e),
+        }
+
+        config
+    }
+}
+
+#[async_trait]
+pub trait Module {
+    fn new() -> Self where Self: Sized;
+    fn get_config(&self) -> &RequestConfig;
+    async fn process_response_into_event_with_id(&self, response: Response) -> Result<Vec<EventWithId>, Box<dyn std::error::Error>>;
 }
 
 pub fn headers_modifier(headers: &HashMap<String, String>, header_map: &mut HeaderMap) {
@@ -65,21 +100,21 @@ pub fn read_json<T: de::DeserializeOwned>(file_path: &str) -> Result<T, io::Erro
     }
 }
 
-pub struct SimpleEvent {
+pub struct PartialDayEvent {
     pub summary: String,
     pub description: String,
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
 }
 
-pub struct SimpleWholeDayEvent {
+pub struct WholeDayEvent {
     pub summary: String,
     pub description: String,
     pub date: Date<Utc>,
 }
 
-impl From<SimpleEvent> for Event {
-    fn from(item: SimpleEvent) -> Self {
+impl From<PartialDayEvent> for Event {
+    fn from(item: PartialDayEvent) -> Self {
         Event {
             summary: Some(item.summary),
             description: Some(item.description),
@@ -96,8 +131,8 @@ impl From<SimpleEvent> for Event {
     }
 }
 
-impl From<SimpleWholeDayEvent> for Event {
-    fn from(item: SimpleWholeDayEvent) -> Self {
+impl From<WholeDayEvent> for Event {
+    fn from(item: WholeDayEvent) -> Self {
         Event {
             summary: Some(item.summary),
             description: Some(item.description),
@@ -110,6 +145,20 @@ impl From<SimpleWholeDayEvent> for Event {
                 ..EventDateTime::default()
             }),
             ..Event::default()
+        }
+    }
+}
+
+pub struct EventWithId {
+    pub event: Event,
+    pub id: String,
+}
+
+impl EventWithId {
+    pub fn new(event: Event, id: String) -> EventWithId {
+        EventWithId {
+            event,
+            id,
         }
     }
 }

@@ -1,10 +1,12 @@
-use calendar3::Event;
+use std::error::Error;
+
 use chrono::{Duration, TimeZone, Utc};
-use reqwest::header::HeaderMap;
+use reqwest::Response;
 use serde::Deserialize;
 use serde_json::Number;
 
-use crate::calendar::*;
+use async_trait::async_trait;
+
 use crate::common::*;
 
 #[derive(Debug, Deserialize)]
@@ -26,8 +28,8 @@ struct BilibiliHistoryItem {
     view_at: Number,
 }
 
-impl HistoryItem for BilibiliHistoryItem {
-    fn hash(self: &BilibiliHistoryItem) -> String {
+impl BilibiliHistoryItem {
+    fn id(self: &BilibiliHistoryItem) -> String {
         format!("bilibili|{}|{}|{}", self.bvid, self.page.page, self.view_at)
     }
 }
@@ -38,60 +40,36 @@ struct BilibiliResponse {
     data: Vec<BilibiliHistoryItem>,
 }
 
-pub fn init_bilibili() -> RequestConfig {
-    let mut config = RequestConfig {
-        url: String::from(""),
-        calendar_id: String::from(""),
-        headers: HeaderMap::new(),
-    };
+pub struct Bilibili {
+    request_config: RequestConfig,
+}
 
-    match read_json::<RequestConfigJson>("config/bilibili.json.default") {
-        Ok(default_config) => {
-            headers_modifier(&default_config.headers, &mut config.headers);
-            config.url = default_config.url;
-            config.calendar_id = default_config.calendar_id;
-        },
-        Err(e) => panic!("Default bilibili config not found! {}", e),
-    }
-    match read_json::<RequestConfigJson>("config/bilibili.json") {
-        Ok(custom_config) => {
-            headers_modifier(&custom_config.headers, &mut config.headers);
-            config.url = custom_config.url;
-            config.calendar_id = custom_config.calendar_id;
+#[async_trait]
+impl Module for Bilibili {
+    fn new() -> Bilibili {
+        Bilibili {
+            request_config: RequestConfig::new("bilibili"),
         }
-        Err(e) => println!("Bilibili config file not found, falling back to default file. {}", e),
     }
 
-    config
-}
-
-async fn get_bilibili(config: &RequestConfig) -> Result<BilibiliResponse, Box<dyn std::error::Error>> {
-    let client = reqwest::Client::new();
-    let headers = config.headers.clone();
-    let resp: BilibiliResponse = client.get(&config.url)
-        .headers(headers)
-        .send()
-        .await?
-        .json::<BilibiliResponse>()
-        .await?;
-    Ok(resp)
-}
-
-pub async fn post_bilibili_to_calendar(hub: &CalHub, config: &RequestConfig) -> Result<(), Box<dyn std::error::Error>> {
-    let data = get_bilibili(&config).await?.data;
-    for item in data.iter() {
-        let view_duration = match item.progress.as_i64().unwrap() {
-            -1 => &item.page.duration,
-            _ => &item.progress,
-        };
-        let req: Event = SimpleEvent {
-            summary: format!("[Bilibili] {}", item.title),
-            description: format!("[link] {}\n[bvid] {}\n[hash] {}", item.redirect_link, item.bvid, item.hash()),
-            start: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap()),
-            end: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap() + view_duration.as_i64().unwrap()),
-        }.into();
-        calendar_post(&hub, &config, req);
+    fn get_config(&self) -> &RequestConfig {
+        &(self.request_config)
     }
 
-    Ok(())
+    async fn process_response_into_event_with_id(&self, response: Response) -> Result<Vec<EventWithId>, Box<dyn Error>> {
+        let items: Vec<BilibiliHistoryItem> = response.json::<BilibiliResponse>().await?.data;
+
+        Ok(items.iter().map(|item| {
+            let view_duration = match item.progress.as_i64().unwrap() {
+                -1 => &item.page.duration,
+                _ => &item.progress,
+            };
+            EventWithId::new(PartialDayEvent {
+                summary: format!("[Bilibili] {}", item.title),
+                description: format!("[link] {}\n[bvid] {}\n[hash] {}", item.redirect_link, item.bvid, item.id()),
+                start: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap()),
+                end: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap() + view_duration.as_i64().unwrap()),
+            }.into(), item.id())
+        }).collect::<Vec<EventWithId>>())
+    }
 }
