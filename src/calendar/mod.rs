@@ -10,6 +10,8 @@ use yup_oauth2::{Authenticator, ConsoleApplicationSecret, DefaultAuthenticatorDe
 
 use crate::common::RequestConfig;
 
+pub mod event;
+
 pub type CalHub = CalendarHub<Client, Authenticator<DefaultAuthenticatorDelegate, DiskTokenStorage, Client>>;
 
 pub fn calendar_post(hub: &CalHub, config: &RequestConfig, req: Event) {
@@ -25,9 +27,21 @@ pub fn calendar_post(hub: &CalHub, config: &RequestConfig, req: Event) {
             | Error::Failure(_)
             | Error::BadRequest(_)
             | Error::FieldClash(_)
-            | Error::JsonDecodeError(_, _) => println!("{}", e),
+            | Error::JsonDecodeError(_, _) => error!("Error occurred in posting an event: {}.", e),
         },
-        Ok((_res, events)) => println!("Success: {:#?}", events),
+        Ok((_res, event)) => {
+            info!("Success in posting an event \"{}\" which starts at {}.", match &event.summary {
+                Some(str) => str.clone(),
+                None => "[No summary]".to_string(),
+            }, match &event.start {
+                Some(start) => match &start.date {
+                    Some(date) => date.clone(),
+                    None => "[No start time]".to_string(),
+                },
+                None => "[No start time]".to_string(),
+            });
+            debug!("Detail info about this event: {:?}.", &event);
+        }
     }
 }
 

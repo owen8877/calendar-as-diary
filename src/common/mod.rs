@@ -1,16 +1,14 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io;
+use std::{io, fs};
 use std::path::Path;
 
-use calendar3::{Event, EventDateTime};
-use chrono::{Date, DateTime, Utc};
 use reqwest::header::*;
-use reqwest::Response;
-use serde::{de, Deserialize};
+use serde::{de, Deserialize, Serialize};
 use serde_json as json;
 
-use async_trait::async_trait;
+use crate::calendar::event::*;
+use std::borrow::BorrowMut;
 
 #[derive(Debug, Deserialize)]
 pub struct RequestConfigJson {
@@ -26,7 +24,7 @@ pub struct RequestConfig {
 }
 
 impl RequestConfig {
-    pub(crate) fn new(source: &str) -> RequestConfig {
+    pub fn new(source: &str, calendar_id: Option<String>) -> RequestConfig {
         let mut config = RequestConfig {
             url: String::from(""),
             calendar_id: String::from(""),
@@ -35,6 +33,7 @@ impl RequestConfig {
 
         match read_json::<RequestConfigJson>(format!("config/{}.json.default", source).as_str()) {
             Ok(default_config) => {
+                debug!("Default {} config file loaded.", source);
                 headers_modifier(&default_config.headers, &mut config.headers);
                 config.url = default_config.url;
                 config.calendar_id = default_config.calendar_id;
@@ -43,22 +42,28 @@ impl RequestConfig {
         }
         match read_json::<RequestConfigJson>(format!("config/{}.json", source).as_str()) {
             Ok(custom_config) => {
+                debug!("Custom {} config file loaded.", source);
                 headers_modifier(&custom_config.headers, &mut config.headers);
                 config.url = custom_config.url;
                 config.calendar_id = custom_config.calendar_id;
             }
-            Err(e) => println!("{} config file not found, falling back to default file. {}", source, e),
+            Err(e) => info!("Custom {} config file not found, falling back to default file. {}", source, e),
+        }
+
+        if let Some(calendar_id) = calendar_id {
+            config.calendar_id = calendar_id;
         }
 
         config
     }
 }
 
-#[async_trait]
 pub trait Module {
-    fn new() -> Self where Self: Sized;
+    fn new(calendar_id: Option<String>) -> Self where Self: Sized;
+    fn dump(&self);
     fn get_config(&self) -> &RequestConfig;
-    async fn process_response_into_event_with_id(&self, response: Response) -> Result<Vec<EventWithId>, Box<dyn std::error::Error>>;
+    fn get_event_ids(&mut self) -> &mut HashSet<String>;
+    fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId>;
 }
 
 pub fn headers_modifier(headers: &HashMap<String, String>, header_map: &mut HeaderMap) {
@@ -67,6 +72,7 @@ pub fn headers_modifier(headers: &HashMap<String, String>, header_map: &mut Head
     for key in headers.keys() {
         match header_dict.get(key.as_str()) {
             Some(header) => {
+                debug!("Inserted header {} with value {}.", key, headers[key]);
                 header_map.insert(header, headers[key].parse().unwrap());
             },
             None => panic!("Unknown header {}.", key),
@@ -100,65 +106,31 @@ pub fn read_json<T: de::DeserializeOwned>(file_path: &str) -> Result<T, io::Erro
     }
 }
 
-pub struct PartialDayEvent {
-    pub summary: String,
-    pub description: String,
-    pub start: DateTime<Utc>,
-    pub end: DateTime<Utc>,
-}
-
-pub struct WholeDayEvent {
-    pub summary: String,
-    pub description: String,
-    pub date: Date<Utc>,
-}
-
-impl From<PartialDayEvent> for Event {
-    fn from(item: PartialDayEvent) -> Self {
-        Event {
-            summary: Some(item.summary),
-            description: Some(item.description),
-            start: Some(EventDateTime {
-                date_time: Some(item.start.to_rfc3339()),
-                ..EventDateTime::default()
-            }),
-            end: Some(EventDateTime {
-                date_time: Some(item.end.to_rfc3339()),
-                ..EventDateTime::default()
-            }),
-            ..Event::default()
-        }
+pub fn read_dumped_event_id(identifier: &str) -> HashSet<String> {
+    match read_json::<HashSet<String>>(format!("dump/{}.json", identifier).as_str()) {
+        Ok(set) => set,
+        Err(_) => HashSet::new(),
     }
 }
 
-impl From<WholeDayEvent> for Event {
-    fn from(item: WholeDayEvent) -> Self {
-        Event {
-            summary: Some(item.summary),
-            description: Some(item.description),
-            start: Some(EventDateTime {
-                date: Some(item.date.format("%Y-%m-%d").to_string()),
-                ..EventDateTime::default()
-            }),
-            end: Some(EventDateTime {
-                date: Some(item.date.format("%Y-%m-%d").to_string()),
-                ..EventDateTime::default()
-            }),
-            ..Event::default()
-        }
+pub fn path_exists(path: &str) -> bool {
+    fs::metadata(path).is_ok()
+}
+
+pub fn ensure_directory(path: &str) {
+    if !path_exists(path) {
+        fs::create_dir(path);
     }
 }
 
-pub struct EventWithId {
-    pub event: Event,
-    pub id: String,
+pub fn write_json<T: Serialize>(file_path: &str, object: &T) -> Result<(), io::Error> {
+    match serde_json::to_string(object) {
+        Ok(serialized) => fs::write(file_path, serialized),
+        Err(e) => Err(e.into()),
+    }
 }
 
-impl EventWithId {
-    pub fn new(event: Event, id: String) -> EventWithId {
-        EventWithId {
-            event,
-            id,
-        }
-    }
+pub fn dump_event_id_wrapper(identifier: &str, ids: &HashSet<String>) {
+    ensure_directory("dump");
+    write_json::<HashSet<String>>(format!("dump/{}.json", identifier).as_str(), ids);
 }

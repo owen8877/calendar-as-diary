@@ -7,9 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait = "0.1.33"
 chrono = "*"
-cmd_lib = "0.7.8"
+env_logger = "*"
 google-calendar3 = "*"
 # This project intentionally uses an old version of Hyper. See
 # https://github.com/Byron/google-apis-rs/issues/173 for more
@@ -17,10 +16,11 @@ google-calendar3 = "*"
 hyper = "^0.10"
 hyper-native-tls = "^0.3"
 hyper-rustls = "^0.6"
-reqwest = { version = "0.10", features = ["json"] }
-scraper = "0.12.0"
+log = "*"
+reqwest = { version = "^0.10", features = ["json"] }
+scraper = "^0.12.0"
 serde = { version = "^1.0", features = ["derive"] }
 serde_derive = "^1.0"
 serde_json = "^1.0"
-tokio = { version = "0.2", features = ["full"] }
+tokio = { version = "^0.2", features = ["full"] }
 yup-oauth2 = "^1.0"

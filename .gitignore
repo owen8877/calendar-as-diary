@@ -17,4 +17,4 @@ config/tokenstorage.json
 # Json config
 config/*.json
 -config/*.json.default
-
+dump/
