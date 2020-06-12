@@ -50,6 +50,7 @@ impl From<WholeDayEvent> for Event {
     }
 }
 
+#[derive(std::fmt::Debug)]
 pub struct EventWithId {
     pub event: Event,
     pub id: String,

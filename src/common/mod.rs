@@ -8,7 +8,6 @@ use serde::{de, Deserialize, Serialize};
 use serde_json as json;
 
 use crate::calendar::event::*;
-use std::borrow::BorrowMut;
 
 #[derive(Debug, Deserialize)]
 pub struct RequestConfigJson {
@@ -63,6 +62,7 @@ pub trait Module {
     fn dump(&self);
     fn get_config(&self) -> &RequestConfig;
     fn get_event_ids(&mut self) -> &mut HashSet<String>;
+    fn get_identifier(&self) -> &str;
     fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId>;
 }
 

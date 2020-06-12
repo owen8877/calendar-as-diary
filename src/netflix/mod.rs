@@ -48,6 +48,10 @@ impl Module for Netflix {
         &mut self.event_ids
     }
 
+    fn get_identifier(&self) -> &str {
+        IDENTIFIER
+    }
+
     fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId> {
         let document = Html::parse_document(response.as_str());
         let selector = Selector::parse("li.retableRow").unwrap();

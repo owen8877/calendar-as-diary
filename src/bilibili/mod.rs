@@ -5,13 +5,11 @@ use serde_json::Number;
 use crate::common::*;
 use crate::calendar::event::*;
 use std::collections::HashSet;
-use std::collections::hash_map::RandomState;
-use std::io::Error;
 
 const IDENTIFIER: &str = "bilibili";
 
 #[derive(Debug, Deserialize)]
-struct BilibiliPage2 {
+struct BilibiliPage {
     cid: Number,
     page: Number,
     part: String,
@@ -22,7 +20,8 @@ struct BilibiliPage2 {
 struct BilibiliHistoryItem {
     aid: Number,
     bvid: String,
-    page: BilibiliPage2,
+    duration: Number,
+    page: Option<BilibiliPage>,
     progress: Number,
     redirect_link: String,
     title: String,
@@ -31,7 +30,10 @@ struct BilibiliHistoryItem {
 
 impl BilibiliHistoryItem {
     fn id(self: &BilibiliHistoryItem) -> String {
-        format!("bilibili|{}|{}|{}", self.bvid, self.page.page, self.view_at)
+        format!("bilibili|{}|{}|{}", self.bvid, match &self.page {
+            None => 0,
+            Some(page) => page.page.as_i64().unwrap(),
+        }, self.view_at)
     }
 }
 
@@ -66,6 +68,10 @@ impl Module for Bilibili {
         &mut self.event_ids
     }
 
+    fn get_identifier(&self) -> &str {
+        IDENTIFIER
+    }
+
     fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId> {
         let items = match serde_json::from_str::<BilibiliResponse>(response.as_str()) {
             Ok(json) => json.data,
@@ -74,14 +80,17 @@ impl Module for Bilibili {
 
         items.iter().map(|item| {
             let view_duration = match item.progress.as_i64().unwrap() {
-                -1 => &item.page.duration,
-                _ => &item.progress,
+                -1 => match &item.page {
+                    None => 10,
+                    Some(page) => page.duration.as_i64().unwrap(),
+                },
+                k => k,
             };
             EventWithId::new(PartialDayEvent {
                 summary: format!("[Bilibili] {}", item.title),
                 description: format!("[link] {}\n[bvid] {}\n[hash] {}", item.redirect_link, item.bvid, item.id()),
                 start: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap()),
-                end: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap() + view_duration.as_i64().unwrap()),
+                end: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap() + view_duration),
             }.into(), item.id())
         }).collect()
     }

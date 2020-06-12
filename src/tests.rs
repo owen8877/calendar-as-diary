@@ -65,7 +65,7 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
             ];
 
             for mut module in modules {
-                let response = fetch_data(&mut module, &hub).await?;
+                let response = fetch_data(&mut module).await?;
                 let events = filter_events_to_be_posted(&mut module, response);
                 for event in events {
                     calendar_post(&hub, module.get_config(), event.event.clone());
@@ -89,10 +89,37 @@ async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     for mut module in modules {
-        let response = fetch_data(&mut module, &hub).await?;
+        let response = fetch_data(&mut module).await?;
         let events = filter_events_to_be_posted(&mut module, response);
         // We skip the posting-to-calendar step
         module.dump()
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_interval() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+    let hub = init_hub();
+
+    let mut modules: Vec<Box<dyn Module>> = vec![
+        Box::new(Bilibili::new(None)),
+        Box::new(Netflix::new(None)),
+    ];
+
+    let mut interval = time::interval(Duration::from_millis(5*1000));
+
+    for i in 0..1 {
+        interval.tick().await;
+        info!("Timer picked up at {:#?}", SystemTime::now());
+        for mut module in &mut modules {
+            let response = fetch_data(&mut module).await?;
+            let events = filter_events_to_be_posted(&mut module, response);
+            println!("{}", events.len());
+            // We skip the posting-to-calendar step and the dumping step
+        }
+        info!("Waiting for timer to pick up...");
     }
 
     Ok(())

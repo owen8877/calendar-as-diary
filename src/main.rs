@@ -4,12 +4,17 @@ extern crate hyper_rustls;
 #[macro_use] extern crate log;
 extern crate reqwest;
 extern crate serde_derive;
+extern crate tokio;
+
+use std::time::{Duration, SystemTime};
+
+use tokio::time;
 
 use crate::bilibili::*;
 use crate::calendar::*;
+use crate::calendar::event::EventWithId;
 use crate::common::*;
 use crate::netflix::*;
-use crate::calendar::event::EventWithId;
 
 mod bilibili;
 mod common;
@@ -21,21 +26,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     let hub = init_hub();
-    let modules: Vec<Box<dyn Module>> = vec![Box::new(Bilibili::new(None)), Box::new(Netflix::new(None))];
+    let mut modules: Vec<Box<dyn Module>> = vec![Box::new(Bilibili::new(None)), Box::new(Netflix::new(None))];
+    let mut interval = time::interval(Duration::from_millis(60*60*1000));
 
-    for mut module in modules {
-        let response = fetch_data(&mut module, &hub).await?;
-        let events = filter_events_to_be_posted(&mut module, response);
-        for event in events {
-            calendar_post(&hub, module.get_config(), event.event.clone());
+    loop {
+        interval.tick().await;
+        info!("Timer picked up at {:#?}", SystemTime::now());
+        for mut module in &mut modules {
+            let response = fetch_data(&mut module).await?;
+            let events = filter_events_to_be_posted(&mut module, response);
+            for event in events {
+                calendar_post(&hub, module.get_config(), event.event.clone());
+            }
+            module.dump()
         }
-        module.dump()
+        info!("Waiting for timer to pick up...")
     }
 
     Ok(())
 }
 
-async fn fetch_data(module: &mut Box<dyn Module>, hub: &CalHub) -> Result<String, Box<dyn std::error::Error>> {
+async fn fetch_data(module: &mut Box<dyn Module>) -> Result<String, Box<dyn std::error::Error>> {
     let config = module.get_config();
     let client = reqwest::Client::new();
     let headers = config.headers.clone();
