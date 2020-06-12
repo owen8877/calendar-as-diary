@@ -1,5 +1,12 @@
 #
 
+## Guide
+0. Make sure you have rust toolchain.
+1. Edit `config/*.json` files from `config/*.json.default` templates.
+2. `cargo build`
+3. `RUST_LOG=info screen cargo run`
+
+
 ## Privacy Policy
 
 xDroid built the Calendar as diary app as an Open Source app. This SERVICE is provided by xDroid at no cost and is intended for use as is.

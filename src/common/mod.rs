@@ -9,6 +9,8 @@ use serde_json as json;
 
 use crate::calendar::event::*;
 
+pub mod utc_date_format;
+
 #[derive(Debug, Deserialize)]
 pub struct RequestConfigJson {
     pub url: String,
@@ -63,6 +65,7 @@ pub trait Module {
     fn get_config(&self) -> &RequestConfig;
     fn get_event_ids(&mut self) -> &mut HashSet<String>;
     fn get_identifier(&self) -> &str;
+    fn get_request_url(&self) -> String;
     fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId>;
 }
 
@@ -84,6 +87,7 @@ fn get_header_dict() -> HashMap<&'static str, HeaderName> {
     let mut dict = HashMap::<&str, HeaderName>::new();
     dict.insert("accept",                    ACCEPT);
     dict.insert("accept-language",           ACCEPT_LANGUAGE);
+    dict.insert("authorization",             AUTHORIZATION);
     dict.insert("cache-control",             CACHE_CONTROL);
     dict.insert("cookie",                    COOKIE);
     dict.insert("dnt",                       DNT);

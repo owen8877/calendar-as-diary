@@ -21,7 +21,7 @@ fn list_all_calendar() {
 
 fn get_all_calendars(hub: &CalHub) -> Option<Vec<CalendarListEntry>> {
     match hub.calendar_list().list().doit() {
-        Ok((resp, calendar_list)) => calendar_list.items,
+        Ok((_resp, calendar_list)) => calendar_list.items,
         Err(e) => panic!("{:#?}", e),
     }
 }
@@ -49,19 +49,20 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Then add our new test calendar
-    let mut req = Calendar {
+    let req = Calendar {
         summary: Some(test_calendar_name.to_string()),
         ..Calendar::default()
     };
     let result = hub.calendars().insert(req).doit();
     match result {
-        Ok((resp, calendar)) => {
+        Ok((_resp, calendar)) => {
             let calendar_id = calendar.id.unwrap();
-            println!("The test calendar is {}. Please visit https://calendar.google.com/calendar/r/settings/addcalendar to add that.", &calendar_id);
+            println!("The test calendar is {}. Please visit https://calendar.google.com/calendar/r.", &calendar_id);
 
             let modules: Vec<Box<dyn Module>> = vec![
-                Box::new(Bilibili::new(Some(calendar_id.clone()))),
-                Box::new(Netflix::new(Some(calendar_id.clone()))),
+                // Box::new(Bilibili::new(Some(calendar_id.clone()))),
+                // Box::new(Netflix::new(Some(calendar_id.clone()))),
+                Box::new(Wakatime::new(Some(calendar_id.clone()))),
             ];
 
             for mut module in modules {
@@ -81,7 +82,6 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
 #[tokio::test]
 async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let hub = init_hub();
 
     let modules: Vec<Box<dyn Module>> = vec![
         Box::new(Bilibili::new(None)),
@@ -90,7 +90,7 @@ async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
 
     for mut module in modules {
         let response = fetch_data(&mut module).await?;
-        let events = filter_events_to_be_posted(&mut module, response);
+        filter_events_to_be_posted(&mut module, response);
         // We skip the posting-to-calendar step
         module.dump()
     }
@@ -101,16 +101,15 @@ async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
 #[tokio::test]
 async fn test_interval() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let hub = init_hub();
 
     let mut modules: Vec<Box<dyn Module>> = vec![
         Box::new(Bilibili::new(None)),
         Box::new(Netflix::new(None)),
     ];
 
-    let mut interval = time::interval(Duration::from_millis(5*1000));
+    let mut interval = time::interval(Duration::from_millis(2*1000));
 
-    for i in 0..1 {
+    for _ in 0..3 {
         interval.tick().await;
         info!("Timer picked up at {:#?}", SystemTime::now());
         for mut module in &mut modules {

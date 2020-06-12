@@ -19,7 +19,7 @@ impl NetflixHistoryItem {
     fn id(self: &NetflixHistoryItem) -> String {
         let paths = self.link.split("/").collect::<Vec<&str>>();
         let id = paths[2].parse::<u32>().unwrap();
-        format!("netflix|{}|{}", id, self.date)
+        format!("{}|{}|{}", IDENTIFIER, id, self.date)
     }
 }
 
@@ -50,6 +50,10 @@ impl Module for Netflix {
 
     fn get_identifier(&self) -> &str {
         IDENTIFIER
+    }
+
+    fn get_request_url(&self) -> String {
+        self.request_config.url.to_string()
     }
 
     fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId> {

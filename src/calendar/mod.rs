@@ -34,9 +34,14 @@ pub fn calendar_post(hub: &CalHub, config: &RequestConfig, req: Event) {
                 Some(str) => str.clone(),
                 None => "[No summary]".to_string(),
             }, match &event.start {
-                Some(start) => match &start.date {
-                    Some(date) => date.clone(),
-                    None => "[No start time]".to_string(),
+                Some(start) => {
+                    if let Some(date) = &start.date {
+                        date.clone()
+                    } else if let Some(datetime) = &start.date_time {
+                        datetime.clone()
+                    } else {
+                        "[No start time]".to_string()
+                    }
                 },
                 None => "[No start time]".to_string(),
             });

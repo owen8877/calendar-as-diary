@@ -15,18 +15,24 @@ use crate::calendar::*;
 use crate::calendar::event::EventWithId;
 use crate::common::*;
 use crate::netflix::*;
+use crate::wakatime::*;
 
 mod bilibili;
 mod common;
 mod calendar;
 mod netflix;
+mod wakatime;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     let hub = init_hub();
-    let mut modules: Vec<Box<dyn Module>> = vec![Box::new(Bilibili::new(None)), Box::new(Netflix::new(None))];
+    let mut modules: Vec<Box<dyn Module>> = vec![
+        Box::new(Bilibili::new(None)),
+        Box::new(Netflix::new(None)),
+        Box::new(Wakatime::new(None)),
+    ];
     let mut interval = time::interval(Duration::from_millis(60*60*1000));
 
     loop {
@@ -47,11 +53,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn fetch_data(module: &mut Box<dyn Module>) -> Result<String, Box<dyn std::error::Error>> {
-    let config = module.get_config();
-    let client = reqwest::Client::new();
-    let headers = config.headers.clone();
-    let response: String = client.get(&config.url)
-        .headers(headers)
+    let response = reqwest::Client::new()
+        .get(&module.get_request_url())
+        .headers(module.get_config().headers.clone())
         .send()
         .await?
         .text()

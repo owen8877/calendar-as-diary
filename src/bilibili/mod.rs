@@ -30,7 +30,7 @@ struct BilibiliHistoryItem {
 
 impl BilibiliHistoryItem {
     fn id(self: &BilibiliHistoryItem) -> String {
-        format!("bilibili|{}|{}|{}", self.bvid, match &self.page {
+        format!("{}|{}|{}|{}", IDENTIFIER, self.bvid, match &self.page {
             None => 0,
             Some(page) => page.page.as_i64().unwrap(),
         }, self.view_at)
@@ -72,10 +72,14 @@ impl Module for Bilibili {
         IDENTIFIER
     }
 
+    fn get_request_url(&self) -> String {
+        self.request_config.url.to_string()
+    }
+
     fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId> {
         let items = match serde_json::from_str::<BilibiliResponse>(response.as_str()) {
             Ok(json) => json.data,
-            Err(e) => panic!("Cannot parse bilibili response!, {:#?}", e),
+            Err(e) => panic!("Cannot parse {} response!, {:#?}", IDENTIFIER, e),
         };
 
         items.iter().map(|item| {
