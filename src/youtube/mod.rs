@@ -33,6 +33,7 @@ impl YoutubeHistoryItem {
 pub struct Youtube {
     request_config: RequestConfig,
     event_ids: HashSet<String>,
+    daylight_saving: DaylightSavingConfig,
 }
 
 #[derive(Debug, Clone)]
@@ -65,6 +66,11 @@ impl Module for Youtube {
         Youtube {
             request_config: RequestConfig::new(IDENTIFIER, calendar_id),
             event_ids: read_dumped_event_id(IDENTIFIER),
+            daylight_saving:
+                match read_json::<DaylightSavingConfigWrapper>(format!("config/{}.json", IDENTIFIER).as_str()) {
+                    Ok(d) => d.daylight_saving,
+                    Err(e) => panic!("{} config not found! {}", IDENTIFIER, e),
+                }
         }
     }
 
@@ -223,12 +229,13 @@ impl Module for Youtube {
                         },
                     };
 
+                    let offset = self.daylight_saving.get_offset_on(&Local::today());
                     items.push(YoutubeHistoryItem {
                         link: title_element.value().attr("href").unwrap().to_string(),
                         title: title_element.inner_html(),
                         author: author_element.inner_html(),
                         length: watched_length,
-                        start: date.and_hms(start_hour_minute.0, start_hour_minute.1, 0)
+                        start: date.and_hms(start_hour_minute.0, start_hour_minute.1, 0) - Duration::hours(offset as i64)
                     })
                 },
                 t => return Err(Box::new(UnknownElement(t.to_string()))),

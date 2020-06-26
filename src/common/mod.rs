@@ -9,6 +9,7 @@ use serde_json as json;
 
 use crate::calendar::event::*;
 use std::error::Error;
+use chrono::{Date, Local};
 
 pub mod utc_date_format;
 
@@ -97,6 +98,27 @@ fn get_header_dict() -> HashMap<&'static str, HeaderName> {
     dict.insert("user-agent",                USER_AGENT);
 
     dict
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DaylightSavingConfigWrapper {
+    pub daylight_saving: DaylightSavingConfig,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DaylightSavingConfig {
+    pub start: (u32, u32), // date when daylight saving is effective, normally in spring
+    pub end: (u32, u32), // date when daylight saving is no longer effective, normally in fall
+    pub effective: i32, // daylight saving timezone
+    pub standard: i32,
+    pub local: i32, // timezone on the server machine
+}
+
+impl DaylightSavingConfig {
+    pub fn get_offset_on(&self, date: &Date<Local>) -> i32 {
+        // TODO: See Issue 2
+        self.effective - self.local
+    }
 }
 
 pub fn read_json<T: de::DeserializeOwned>(file_path: &str) -> Result<T, io::Error> {
