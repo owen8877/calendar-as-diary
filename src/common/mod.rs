@@ -8,6 +8,7 @@ use serde::{de, Deserialize, Serialize};
 use serde_json as json;
 
 use crate::calendar::event::*;
+use std::error::Error;
 
 pub mod utc_date_format;
 
@@ -66,7 +67,7 @@ pub trait Module {
     fn get_event_ids(&mut self) -> &mut HashSet<String>;
     fn get_identifier(&self) -> &str;
     fn get_request_url(&self) -> String;
-    fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId>;
+    fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>>;
 }
 
 pub fn headers_modifier(headers: &HashMap<String, String>, header_map: &mut HeaderMap) {

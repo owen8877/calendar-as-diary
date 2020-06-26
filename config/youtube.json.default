@@ -1,0 +1,9 @@
+{
+  "calendar_id": "@group.calendar.google.com",
+  "url": "https://myactivity.google.com/activitycontrols/youtube?view=item",
+  "headers": {
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "cookie": "Cookie: ",
+    "user-agent": "Mozilla/5.0"
+  }
+}

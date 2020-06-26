@@ -60,20 +60,35 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
             println!("The test calendar is {}. Please visit https://calendar.google.com/calendar/r.", &calendar_id);
 
             let modules: Vec<Box<dyn Module>> = vec![
-                // Box::new(Bilibili::new(Some(calendar_id.clone()))),
-                // Box::new(Netflix::new(Some(calendar_id.clone()))),
-                Box::new(Wakatime::new(Some(calendar_id.clone()))),
+                Box::new(Youtube::new(Some(calendar_id.clone()))),
             ];
 
             for mut module in modules {
                 let response = fetch_data(&mut module).await?;
-                let events = filter_events_to_be_posted(&mut module, response);
+                let events = filter_events_to_be_posted(&mut module, response)?;
                 for event in events {
                     calendar_post(&hub, module.get_config(), event.event.clone());
                 }
             }
         },
         Err(e) => panic!("Error occurred when insert the test calendar! {}", e),
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_fetch() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+
+    let modules: Vec<Box<dyn Module>> = vec![
+        Box::new(Youtube::new(None)),
+    ];
+
+    for mut module in modules {
+        let response = fetch_data(&mut module).await?;
+        let events = filter_events_to_be_posted(&mut module, response)?;
+        println!("{:#?}", events);
     }
 
     Ok(())
@@ -90,7 +105,7 @@ async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
 
     for mut module in modules {
         let response = fetch_data(&mut module).await?;
-        filter_events_to_be_posted(&mut module, response);
+        filter_events_to_be_posted(&mut module, response)?;
         // We skip the posting-to-calendar step
         module.dump()
     }
@@ -114,7 +129,7 @@ async fn test_interval() -> Result<(), Box<dyn std::error::Error>> {
         info!("Timer picked up at {:#?}", SystemTime::now());
         for mut module in &mut modules {
             let response = fetch_data(&mut module).await?;
-            let events = filter_events_to_be_posted(&mut module, response);
+            let events = filter_events_to_be_posted(&mut module, response)?;
             println!("{}", events.len());
             // We skip the posting-to-calendar step and the dumping step
         }

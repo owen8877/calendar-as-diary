@@ -1,10 +1,12 @@
-use chrono::{Duration, Utc, DateTime};
+use std::collections::HashSet;
+use std::error::Error;
+
+use chrono::{DateTime, Duration, Utc};
 use serde::Deserialize;
 use serde_json::Number;
 
-use crate::common::*;
 use crate::calendar::event::*;
-use std::collections::HashSet;
+use crate::common::*;
 
 const IDENTIFIER: &str = "wakatime";
 
@@ -71,17 +73,17 @@ impl Module for Wakatime {
         self.request_config.url.replace("{date}", yesterday.format("%Y-%m-%d").to_string().as_str())
     }
 
-    fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId> {
+    fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
         let items = match serde_json::from_str::<WakatimeResponse>(response.as_str()) {
             Ok(json) => json.data,
             Err(e) => panic!("Cannot parse {} response!, {:#?}", IDENTIFIER, e),
         };
 
-        items.iter().map(|item| EventWithId::new(PartialDayEvent {
+        Ok(items.iter().map(|item| EventWithId::new(PartialDayEvent {
             summary: format!("[Wakatime] {}", item.project),
             description: format!("[link] https://wakatime.com/projects/{}", item.project),
             start: item.created_at,
             end: item.created_at + Duration::seconds(item.duration.as_f64().unwrap().floor() as i64),
-        }.into(), item.id())).collect()
+        }.into(), item.id())).collect())
     }
 }

@@ -1,10 +1,12 @@
+use std::collections::HashSet;
+use std::error::Error;
+
 use chrono::{Duration, TimeZone, Utc};
 use serde::Deserialize;
 use serde_json::Number;
 
-use crate::common::*;
 use crate::calendar::event::*;
-use std::collections::HashSet;
+use crate::common::*;
 
 const IDENTIFIER: &str = "bilibili";
 
@@ -76,13 +78,13 @@ impl Module for Bilibili {
         self.request_config.url.to_string()
     }
 
-    fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId> {
+    fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
         let items = match serde_json::from_str::<BilibiliResponse>(response.as_str()) {
             Ok(json) => json.data,
             Err(e) => panic!("Cannot parse {} response!, {:#?}", IDENTIFIER, e),
         };
 
-        items.iter().map(|item| {
+        Ok(items.iter().map(|item| {
             let view_duration = match item.progress.as_i64().unwrap() {
                 -1 => match &item.page {
                     None => 10,
@@ -96,6 +98,6 @@ impl Module for Bilibili {
                 start: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap()),
                 end: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap() + view_duration),
             }.into(), item.id())
-        }).collect()
+        }).collect())
     }
 }

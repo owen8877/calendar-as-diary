@@ -1,10 +1,12 @@
+use std::collections::HashSet;
+use std::error::Error;
+
 use chrono::{TimeZone, Utc};
 use scraper::{ElementRef, Html, Selector};
 use serde::Deserialize;
 
-use crate::common::*;
 use crate::calendar::event::*;
-use std::collections::HashSet;
+use crate::common::*;
 
 const IDENTIFIER: &str = "netflix";
 
@@ -56,7 +58,7 @@ impl Module for Netflix {
         self.request_config.url.to_string()
     }
 
-    fn process_response_into_event_with_id(&self, response: String) -> Vec<EventWithId> {
+    fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
         let document = Html::parse_document(response.as_str());
         let selector = Selector::parse("li.retableRow").unwrap();
         let title_selector = Selector::parse("div.title").unwrap();
@@ -72,13 +74,13 @@ impl Module for Netflix {
             }
         }).collect();
 
-        items.iter().map(|item| {
+        Ok(items.iter().map(|item| {
             let date_info: Vec<u32> = item.date.split("/").collect::<Vec<&str>>().iter().map(|s: &&str| s.parse::<u32>().unwrap()).collect();
             EventWithId::new(WholeDayEvent {
                 summary: format!("[Netflix] {}", item.title),
                 description: format!("[link] https://www.netflix.com{}\n[hash] {}", item.link, item.id()),
                 date: Utc.ymd((2000 + date_info[2]) as i32, date_info[0], date_info[1]),
             }.into(), item.id())
-        }).collect()
+        }).collect())
     }
 }
