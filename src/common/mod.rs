@@ -9,7 +9,8 @@ use serde_json as json;
 
 use crate::calendar::event::*;
 use std::error::Error;
-use chrono::{Date, Local};
+use chrono::{Date, Local, Datelike};
+use std::cmp::Ordering;
 
 pub mod utc_date_format;
 
@@ -116,8 +117,14 @@ pub struct DaylightSavingConfig {
 
 impl DaylightSavingConfig {
     pub fn get_offset_on(&self, date: &Date<Local>) -> i32 {
-        // TODO: See Issue 2
-        self.effective - self.local
+        let month = date.month();
+        let day = date.day();
+        let date = (month, day);
+        if self.start <= date && date <= self.end {
+            self.effective - self.local
+        } else {
+            self.standard - self.local
+        }
     }
 }
 
@@ -161,3 +168,6 @@ pub fn dump_event_id_wrapper(identifier: &str, ids: &HashSet<String>) {
     ensure_directory("dump");
     write_json::<HashSet<String>>(format!("dump/{}.json", identifier).as_str(), ids);
 }
+
+#[cfg(test)]
+mod tests;

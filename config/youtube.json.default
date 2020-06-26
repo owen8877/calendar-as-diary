@@ -5,5 +5,12 @@
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "cookie": "Cookie: ",
     "user-agent": "Mozilla/5.0"
+  },
+  "daylight_saving": {
+    "start": [3, 11],
+    "end": [11, 4],
+    "effective": -5,
+    "standard": -6,
+    "local": 0
   }
 }
