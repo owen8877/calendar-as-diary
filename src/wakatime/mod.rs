@@ -45,11 +45,13 @@ pub struct Wakatime {
 }
 
 impl Module for Wakatime {
-    fn new(calendar_id: Option<String>) -> Wakatime {
-        Wakatime {
-            request_config: RequestConfig::new(IDENTIFIER, calendar_id),
-            event_ids: read_dumped_event_id(IDENTIFIER),
-        }
+    fn new(calendar_id: Option<String>) -> Result<Box<dyn Module>, Box<dyn Error>> {
+        let request_config = RequestConfig::new(IDENTIFIER, calendar_id)?;
+        let event_ids = read_dumped_event_id(IDENTIFIER).unwrap_or(HashSet::new());
+        Ok(Box::new(Wakatime {
+            request_config,
+            event_ids,
+        }))
     }
 
     fn dump(&self) {

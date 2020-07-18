@@ -10,7 +10,6 @@ use serde_json as json;
 use crate::calendar::event::*;
 use std::error::Error;
 use chrono::{Date, Local, Datelike};
-use std::cmp::Ordering;
 
 pub mod utc_date_format;
 
@@ -28,7 +27,7 @@ pub struct RequestConfig {
 }
 
 impl RequestConfig {
-    pub fn new(source: &str, calendar_id: Option<String>) -> RequestConfig {
+    pub fn new(source: &str, calendar_id: Option<String>) -> Result<RequestConfig, Box<dyn Error>> {
         let mut config = RequestConfig {
             url: String::from(""),
             calendar_id: String::from(""),
@@ -42,7 +41,10 @@ impl RequestConfig {
                 config.url = default_config.url;
                 config.calendar_id = default_config.calendar_id;
             },
-            Err(e) => panic!("Default {} config not found! {}", source, e),
+            Err(e) => {
+                warn!("Default {} config not found! {}", source, e);
+                return Err(Box::new(e))
+            },
         }
         match read_json::<RequestConfigJson>(format!("config/{}.json", source).as_str()) {
             Ok(custom_config) => {
@@ -51,25 +53,42 @@ impl RequestConfig {
                 config.url = custom_config.url;
                 config.calendar_id = custom_config.calendar_id;
             }
-            Err(e) => info!("Custom {} config file not found, falling back to default file. {}", source, e),
+            Err(e) => {
+                warn!("Custom {} config file not found! {}", source, e);
+                return Err(Box::new(e))
+            },
         }
 
         if let Some(calendar_id) = calendar_id {
             config.calendar_id = calendar_id;
         }
 
-        config
+        Ok(config)
     }
 }
 
 pub trait Module {
-    fn new(calendar_id: Option<String>) -> Self where Self: Sized;
+    fn new(calendar_id: Option<String>) -> Result<Box<dyn Module>, Box<dyn Error>> where Self: Sized;
     fn dump(&self);
     fn get_config(&self) -> &RequestConfig;
     fn get_event_ids(&mut self) -> &mut HashSet<String>;
     fn get_identifier(&self) -> &str;
     fn get_request_url(&self) -> String;
     fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>>;
+}
+
+pub fn filter_loaded_modules(modules: Vec<Result<Box<dyn Module>, Box<dyn Error>>>) -> Vec<Box<dyn Module>> {
+    modules.into_iter().filter_map(|module_res| {
+        module_res
+            .map(|module| {
+                info!("Loaded module {}.", module.get_identifier());
+                module
+            })
+            .map_err(|e| {
+                info!("Error raised in loading module: {}.", e);
+                e
+            }).ok()
+    }).collect()
 }
 
 pub fn headers_modifier(headers: &HashMap<String, String>, header_map: &mut HeaderMap) {
@@ -94,6 +113,7 @@ fn get_header_dict() -> HashMap<&'static str, HeaderName> {
     dict.insert("cache-control",             CACHE_CONTROL);
     dict.insert("cookie",                    COOKIE);
     dict.insert("dnt",                       DNT);
+    dict.insert("origin",                    ORIGIN);
     dict.insert("referer",                   REFERER);
     dict.insert("upgrade-insecure-requests", UPGRADE_INSECURE_REQUESTS);
     dict.insert("user-agent",                USER_AGENT);
@@ -140,10 +160,10 @@ pub fn read_json<T: de::DeserializeOwned>(file_path: &str) -> Result<T, io::Erro
     }
 }
 
-pub fn read_dumped_event_id(identifier: &str) -> HashSet<String> {
+pub fn read_dumped_event_id(identifier: &str) -> Result<HashSet<String>, Box<dyn Error>> {
     match read_json::<HashSet<String>>(format!("dump/{}.json", identifier).as_str()) {
-        Ok(set) => set,
-        Err(_) => HashSet::new(),
+        Ok(set) => Ok(set),
+        Err(e) => Err(Box::new(e)),
     }
 }
 

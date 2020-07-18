@@ -1,0 +1,11 @@
+{
+  "calendar_id": "@group.calendar.google.com",
+  "url": "https://acs.leagueoflegends.com/v1/stats/player_history/NA1/[player_id]?begIndex=0&endIndex=15&",
+  "headers": {
+    "accept": "application/json, text/javascript, */*; q=0.01",
+    "cookie": "[cookie]",
+    "origin": "https://matchhistory.na.leagueoflegends.com",
+    "referer": "https://matchhistory.na.leagueoflegends.com/en/",
+    "user-agent": "Mozilla/5.0 (X11; Linux x86_64; rv:76.0) Gecko/20100101 Firefox/76.0"
+  }
+}

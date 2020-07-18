@@ -5,7 +5,7 @@
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "accept-language": "zh-CN,en-US;q=0.7,en;q=0.3",
     "cache-control": "max-age=0",
-    "cookie": "Cookie: ",
+    "cookie": "[cookie]",
     "dnt": "1",
     "upgrade-insecure-requests": "1",
     "user-agent": "Mozilla/5.0"

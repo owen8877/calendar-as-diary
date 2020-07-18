@@ -16,6 +16,7 @@ use crate::bilibili::*;
 use crate::calendar::*;
 use crate::calendar::event::EventWithId;
 use crate::common::*;
+use crate::league_of_legends::*;
 use crate::netflix::*;
 use crate::wakatime::*;
 use crate::youtube::*;
@@ -23,6 +24,7 @@ use crate::youtube::*;
 mod bilibili;
 mod common;
 mod calendar;
+mod league_of_legends;
 mod netflix;
 mod youtube;
 mod wakatime;
@@ -32,12 +34,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     let hub = init_hub();
-    let mut modules: Vec<Box<dyn Module>> = vec![
-        Box::new(Bilibili::new(None)),
-        Box::new(Netflix::new(None)),
-        Box::new(Wakatime::new(None)),
-        Box::new(Youtube::new(None)),
-    ];
+    let mut modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
+        Bilibili::new(None),
+        Netflix::new(None),
+        Wakatime::new(None),
+        Youtube::new(None),
+    ]);
     let mut interval = time::interval(Duration::from_millis(60*60*1000));
 
     loop {

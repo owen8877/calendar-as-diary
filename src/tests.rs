@@ -59,9 +59,9 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
             let calendar_id = calendar.id.unwrap();
             println!("The test calendar is {}. Please visit https://calendar.google.com/calendar/r.", &calendar_id);
 
-            let modules: Vec<Box<dyn Module>> = vec![
-                Box::new(Youtube::new(Some(calendar_id.clone()))),
-            ];
+            let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
+                LeagueOfLegends::new(Some(calendar_id.clone())),
+            ]);
 
             for mut module in modules {
                 let response = fetch_data(&mut module).await?;
@@ -81,9 +81,9 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_fetch() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    let modules: Vec<Box<dyn Module>> = vec![
-        Box::new(Youtube::new(None)),
-    ];
+    let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
+        LeagueOfLegends::new(None),
+    ]);
 
     for mut module in modules {
         let response = fetch_data(&mut module).await?;
@@ -98,10 +98,10 @@ async fn test_fetch() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    let modules: Vec<Box<dyn Module>> = vec![
-        Box::new(Bilibili::new(None)),
-        Box::new(Netflix::new(None)),
-    ];
+    let mut modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
+        Bilibili::new(None),
+        Netflix::new(None),
+    ]);
 
     for mut module in modules {
         let response = fetch_data(&mut module).await?;
@@ -117,10 +117,10 @@ async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_interval() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    let mut modules: Vec<Box<dyn Module>> = vec![
-        Box::new(Bilibili::new(None)),
-        Box::new(Netflix::new(None)),
-    ];
+    let mut modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
+        Bilibili::new(None),
+        Netflix::new(None),
+    ]);
 
     let mut interval = time::interval(Duration::from_millis(2*1000));
 

@@ -4,12 +4,11 @@ use std::fmt;
 
 use chrono::{TimeZone, Utc, DateTime, Duration, Local, Datelike};
 use scraper::{ElementRef, Html, Selector};
-use serde::Deserialize;
 
 use crate::calendar::event::*;
 use crate::common::*;
 use crate::youtube::ParseError::*;
-use regex::{Regex, Captures};
+use regex::Regex;
 
 const IDENTIFIER: &str = "youtube";
 
@@ -62,16 +61,15 @@ impl Error for ParseError {
 }
 
 impl Module for Youtube {
-    fn new(calendar_id: Option<String>) -> Youtube {
-        Youtube {
-            request_config: RequestConfig::new(IDENTIFIER, calendar_id),
-            event_ids: read_dumped_event_id(IDENTIFIER),
-            daylight_saving:
-                match read_json::<DaylightSavingConfigWrapper>(format!("config/{}.json", IDENTIFIER).as_str()) {
-                    Ok(d) => d.daylight_saving,
-                    Err(e) => panic!("{} config not found! {}", IDENTIFIER, e),
-                }
-        }
+    fn new(calendar_id: Option<String>) -> Result<Box<dyn Module>, Box<dyn Error>> {
+        let request_config = RequestConfig::new(IDENTIFIER, calendar_id)?;
+        let event_ids = read_dumped_event_id(IDENTIFIER).unwrap_or(HashSet::new());
+        let daylight_saving = read_json::<DaylightSavingConfigWrapper>(format!("config/{}.json", IDENTIFIER).as_str())?.daylight_saving;
+        Ok(Box::new(Youtube {
+            request_config,
+            event_ids,
+            daylight_saving,
+        }))
     }
 
     fn dump(&self) {
