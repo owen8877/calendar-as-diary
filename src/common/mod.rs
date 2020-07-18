@@ -85,7 +85,7 @@ pub fn filter_loaded_modules(modules: Vec<Result<Box<dyn Module>, Box<dyn Error>
                 module
             })
             .map_err(|e| {
-                info!("Error raised in loading module: {}.", e);
+                // warn!("Error raised in loading module: {}.", e);
                 e
             }).ok()
     }).collect()

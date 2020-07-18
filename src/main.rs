@@ -36,6 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hub = init_hub();
     let mut modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
         Bilibili::new(None),
+        LeagueOfLegends::new(None),
         Netflix::new(None),
         Wakatime::new(None),
         Youtube::new(None),
