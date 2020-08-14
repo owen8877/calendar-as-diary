@@ -1,4 +1,5 @@
 #
+[![](https://tokei.rs/b1/github/owen8877/calendar-as-diary)](https://github.com/owen8877/calendar-as-diary)
 
 ## Guide
 0. Make sure you have rust toolchain.

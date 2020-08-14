@@ -93,7 +93,7 @@ impl Module for LeagueOfLegends {
     fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
         let (account_id, items) = match serde_json::from_str::<LeagueOfLegendsResponse>(response.as_str()) {
             Ok(json) => (json.account_id, json.games.games),
-            Err(e) => panic!("Cannot parse {} response!, {:#?}", IDENTIFIER, e),
+            Err(e) => panic!("Cannot parse {} response!, {:#?}. The original response reads:\n{}", IDENTIFIER, e, response),
         };
 
         Ok(items.iter().map(|item| {

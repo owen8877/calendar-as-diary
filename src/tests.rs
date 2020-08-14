@@ -60,7 +60,11 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
             println!("The test calendar is {}. Please visit https://calendar.google.com/calendar/r.", &calendar_id);
 
             let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
+                Bilibili::new(Some(calendar_id.clone())),
                 LeagueOfLegends::new(Some(calendar_id.clone())),
+                Netflix::new(Some(calendar_id.clone())),
+                Wakatime::new(Some(calendar_id.clone())),
+                Youtube::new(Some(calendar_id.clone())),
             ]);
 
             for mut module in modules {
@@ -82,7 +86,11 @@ async fn test_fetch() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
+        Bilibili::new(None),
         LeagueOfLegends::new(None),
+        Netflix::new(None),
+        Wakatime::new(None),
+        Youtube::new(None),
     ]);
 
     for mut module in modules {
@@ -100,7 +108,10 @@ async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
         Bilibili::new(None),
+        LeagueOfLegends::new(None),
         Netflix::new(None),
+        Wakatime::new(None),
+        Youtube::new(None),
     ]);
 
     for mut module in modules {
@@ -119,7 +130,10 @@ async fn test_interval() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
         Bilibili::new(None),
+        LeagueOfLegends::new(None),
         Netflix::new(None),
+        Wakatime::new(None),
+        Youtube::new(None),
     ]);
 
     let mut interval = time::interval(Duration::from_millis(2*1000));

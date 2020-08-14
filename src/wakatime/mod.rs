@@ -78,7 +78,7 @@ impl Module for Wakatime {
     fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
         let items = match serde_json::from_str::<WakatimeResponse>(response.as_str()) {
             Ok(json) => json.data,
-            Err(e) => panic!("Cannot parse {} response!, {:#?}", IDENTIFIER, e),
+            Err(e) => panic!("Cannot parse {} response!, {:#?}. The original response reads:\n{}", IDENTIFIER, e, response),
         };
 
         Ok(items.iter().map(|item| EventWithId::new(PartialDayEvent {
