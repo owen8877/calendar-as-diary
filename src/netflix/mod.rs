@@ -6,6 +6,7 @@ use scraper::{ElementRef, Html, Selector};
 use serde::Deserialize;
 
 use crate::calendar::event::*;
+use crate::calendar::event::Duration::WholeDay;
 use crate::common::*;
 
 const IDENTIFIER: &str = "netflix";
@@ -78,11 +79,12 @@ impl Module for Netflix {
 
         Ok(items.iter().map(|item| {
             let date_info: Vec<u32> = item.date.split("/").collect::<Vec<&str>>().iter().map(|s: &&str| s.parse::<u32>().unwrap()).collect();
-            EventWithId::new(WholeDayEvent {
+            EventWithId {
                 summary: format!("[Netflix] {}", item.title),
                 description: format!("[link] https://www.netflix.com{}\n[hash] {}", item.link, item.id()),
-                date: Utc.ymd((2000 + date_info[2]) as i32, date_info[0], date_info[1]),
-            }.into(), item.id())
+                duration: WholeDay(Utc.ymd((2000 + date_info[2]) as i32, date_info[0], date_info[1])),
+                id: item.id(),
+            }
         }).collect())
     }
 }

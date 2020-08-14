@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde_json::Number;
 
 use crate::calendar::event::*;
+use crate::calendar::event::Duration::StartEnd;
 use crate::common::*;
 
 const IDENTIFIER: &str = "wakatime";
@@ -71,8 +72,7 @@ impl Module for Wakatime {
     }
 
     fn get_request_url(&self) -> String {
-        let yesterday = Utc::now() - Duration::days(1);
-        self.request_config.url.replace("{date}", yesterday.format("%Y-%m-%d").to_string().as_str())
+        self.request_config.url.replace("{date}", Utc::now().format("%Y-%m-%d").to_string().as_str())
     }
 
     fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
@@ -81,11 +81,11 @@ impl Module for Wakatime {
             Err(e) => panic!("Cannot parse {} response!, {:#?}. The original response reads:\n{}", IDENTIFIER, e, response),
         };
 
-        Ok(items.iter().map(|item| EventWithId::new(PartialDayEvent {
+        Ok(items.iter().map(|item| EventWithId {
             summary: format!("[Wakatime] {}", item.project),
             description: format!("[link] https://wakatime.com/projects/{}", item.project),
-            start: item.created_at,
-            end: item.created_at + Duration::seconds(item.duration.as_f64().unwrap().floor() as i64),
-        }.into(), item.id())).collect())
+            duration: StartEnd((item.created_at, item.created_at + Duration::seconds(item.duration.as_f64().unwrap().floor() as i64))),
+            id: item.id(),
+        }).collect())
     }
 }

@@ -1,66 +1,46 @@
 use calendar3::{Event, EventDateTime};
 use chrono::{Date, DateTime, Utc};
 
-pub struct PartialDayEvent {
-    pub summary: String,
-    pub description: String,
-    pub start: DateTime<Utc>,
-    pub end: DateTime<Utc>,
-}
-
-pub struct WholeDayEvent {
-    pub summary: String,
-    pub description: String,
-    pub date: Date<Utc>,
-}
-
-impl From<PartialDayEvent> for Event {
-    fn from(item: PartialDayEvent) -> Self {
-        Event {
-            summary: Some(item.summary),
-            description: Some(item.description),
-            start: Some(EventDateTime {
-                date_time: Some(item.start.to_rfc3339()),
-                ..EventDateTime::default()
-            }),
-            end: Some(EventDateTime {
-                date_time: Some(item.end.to_rfc3339()),
-                ..EventDateTime::default()
-            }),
-            ..Event::default()
-        }
-    }
-}
-
-impl From<WholeDayEvent> for Event {
-    fn from(item: WholeDayEvent) -> Self {
-        Event {
-            summary: Some(item.summary),
-            description: Some(item.description),
-            start: Some(EventDateTime {
-                date: Some(item.date.format("%Y-%m-%d").to_string()),
-                ..EventDateTime::default()
-            }),
-            end: Some(EventDateTime {
-                date: Some(item.date.format("%Y-%m-%d").to_string()),
-                ..EventDateTime::default()
-            }),
-            ..Event::default()
-        }
-    }
-}
-
-#[derive(std::fmt::Debug)]
+#[derive(Debug)]
 pub struct EventWithId {
-    pub event: Event,
+    pub summary: String,
+    pub description: String,
+    pub duration: Duration,
     pub id: String,
 }
 
-impl EventWithId {
-    pub fn new(event: Event, id: String) -> EventWithId {
-        EventWithId {
-            event,
-            id,
+#[derive(Debug)]
+pub enum Duration {
+    StartEnd((DateTime<Utc>, DateTime<Utc>)),
+    WholeDay(Date<Utc>),
+}
+
+impl From<EventWithId> for Event {
+    fn from(e: EventWithId) -> Self {
+        let ((start_time, start_date), (end_time, end_date)) = match e.duration {
+            Duration::StartEnd((start, end)) => (
+                (Some(start.to_rfc3339()), None),
+                (Some(end.to_rfc3339()), None),
+            ),
+            Duration::WholeDay(day) => (
+                (None, Some(day.format("%Y-%m-%d").to_string())),
+                (None, Some(day.format("%Y-%m-%d").to_string())),
+            ),
+        };
+        Event {
+            summary: Some(e.summary),
+            description: Some(e.description),
+            start: Some(EventDateTime {
+                date_time: start_time,
+                date: start_date,
+                ..EventDateTime::default()
+            }),
+            end: Some(EventDateTime {
+                date_time: end_time,
+                date: end_date,
+                ..EventDateTime::default()
+            }),
+            ..Event::default()
         }
     }
 }

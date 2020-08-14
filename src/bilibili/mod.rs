@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde_json::Number;
 
 use crate::calendar::event::*;
+use crate::calendar::event::Duration::StartEnd;
 use crate::common::*;
 
 const IDENTIFIER: &str = "bilibili";
@@ -94,12 +95,14 @@ impl Module for Bilibili {
                 },
                 k => k,
             };
-            EventWithId::new(PartialDayEvent {
+            let start_time = Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap());
+            let end_time = Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap() + view_duration);
+            EventWithId {
                 summary: format!("[Bilibili] {}", item.title),
                 description: format!("[link] {}\n[bvid] {}\n[hash] {}", item.redirect_link, item.bvid, item.id()),
-                start: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap()),
-                end: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.view_at.as_i64().unwrap() + view_duration),
-            }.into(), item.id())
+                duration: StartEnd((start_time, end_time)),
+                id: item.id(),
+            }
         }).collect())
     }
 }

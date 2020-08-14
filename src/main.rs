@@ -8,12 +8,14 @@ extern crate serde_derive;
 extern crate tokio;
 
 use std::error::Error;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
+use chrono::{Duration, Utc};
 use tokio::time;
 
 use crate::bilibili::*;
 use crate::calendar::*;
+use crate::calendar::event::Duration::{StartEnd, WholeDay};
 use crate::calendar::event::EventWithId;
 use crate::common::*;
 use crate::league_of_legends::*;
@@ -41,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Wakatime::new(None),
         Youtube::new(None),
     ]);
-    let mut interval = time::interval(Duration::from_millis(60*60*1000));
+    let mut interval = time::interval(std::time::Duration::from_millis(60 * 60 * 1000));
 
     loop {
         interval.tick().await;
@@ -52,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             match events {
                 Ok(events) => {
                     for event in events {
-                        calendar_post(&hub, module.get_config(), event.event.clone());
+                        calendar_post(&hub, module.get_config(), event.into());
                     }
                     module.dump()
                 },
@@ -80,7 +82,8 @@ async fn fetch_data(module: &mut Box<dyn Module>) -> Result<String, Box<dyn std:
 
 fn filter_events_to_be_posted(module: &mut Box<dyn Module>, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
     let fetched_events = module.process_response_into_event_with_id(response)?;
-    Ok(fetched_events.into_iter().filter(|event| {
+    let filtered_events = filter_event(fetched_events);
+    Ok(filtered_events.into_iter().filter(|event| {
         if module.get_event_ids().contains(event.id.as_str()) {
             debug!("Event with id \"{}\" already exists; skipped.", event.id);
             false
@@ -90,6 +93,36 @@ fn filter_events_to_be_posted(module: &mut Box<dyn Module>, response: String) ->
             true
         }
     }).collect())
+}
+
+fn filter_event(events: Vec<EventWithId>) -> Vec<EventWithId> {
+    events.into_iter()
+        .filter(|event| {
+            if match &event.duration {
+                StartEnd((_, end)) => *end < Utc::now() - Duration::hours(1),
+                WholeDay(w) => *w <= Utc::today() - Duration::days(1),
+            } {
+                true
+            } else {
+                info!("Event {} is filtered since it seems to be ongoing.", event.summary);
+                false
+            }
+        })
+        .filter(|event| {
+            if event.id.contains("bilibili") {
+                return true
+            }
+            if match &event.duration {
+                StartEnd((start, end)) => *end - *start > Duration::minutes(5),
+                WholeDay(_) => true,
+            } {
+                true
+            } else {
+                info!("Event {} doesn't last long enough so it is ignored.", event.summary);
+                false
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]

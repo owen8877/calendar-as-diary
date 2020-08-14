@@ -2,13 +2,14 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 
-use chrono::{TimeZone, Utc, DateTime, Duration, Local, Datelike};
+use chrono::{Datelike, DateTime, Duration, Local, TimeZone, Utc};
+use regex::Regex;
 use scraper::{ElementRef, Html, Selector};
 
 use crate::calendar::event::*;
+use crate::calendar::event::Duration::StartEnd;
 use crate::common::*;
 use crate::youtube::ParseError::*;
-use regex::Regex;
 
 const IDENTIFIER: &str = "youtube";
 
@@ -241,12 +242,14 @@ impl Module for Youtube {
         }
 
         Ok(items.iter().map(|item| {
-            EventWithId::new(PartialDayEvent {
+            let start_time = item.start.with_timezone(&Utc);
+            let end_time = (item.start + Duration::seconds(item.length as i64)).with_timezone(&Utc);
+            EventWithId {
                 summary: format!("[Youtube] {}", item.title),
                 description: format!("[link] {}\n[author] {}\n[hash] {}", item.link, item.author, item.id()),
-                start: item.start.with_timezone(&Utc),
-                end: (item.start + Duration::seconds(item.length as i64)).with_timezone(&Utc),
-            }.into(), item.id())
+                duration: StartEnd((start_time, end_time)),
+                id: item.id(),
+            }
         }).collect())
     }
 }

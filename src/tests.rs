@@ -71,7 +71,7 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
                 let response = fetch_data(&mut module).await?;
                 let events = filter_events_to_be_posted(&mut module, response)?;
                 for event in events {
-                    calendar_post(&hub, module.get_config(), event.event.clone());
+                    calendar_post(&hub, module.get_config(), event.into());
                 }
             }
         },
@@ -136,7 +136,7 @@ async fn test_interval() -> Result<(), Box<dyn std::error::Error>> {
         Youtube::new(None),
     ]);
 
-    let mut interval = time::interval(Duration::from_millis(2*1000));
+    let mut interval = time::interval(std::time::Duration::from_millis(2 * 1000));
 
     for _ in 0..3 {
         interval.tick().await;
@@ -151,4 +151,49 @@ async fn test_interval() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+#[test]
+fn test_filter_event() {
+    let events: Vec<EventWithId> = vec![
+        EventWithId {
+            summary: "1".to_string(),
+            description: "".to_string(),
+            duration: StartEnd((Utc::now() - Duration::hours(2), Utc::now() - Duration::hours(1) - Duration::minutes(30))),
+            id: "".to_string(),
+        },
+        EventWithId {
+            summary: "2".to_string(),
+            description: "".to_string(),
+            duration: StartEnd((Utc::now() - Duration::hours(3), Utc::now() - Duration::minutes(30))),
+            id: "".to_string(),
+        },
+        EventWithId {
+            summary: "3".to_string(),
+            description: "".to_string(),
+            duration: StartEnd((Utc::now() - Duration::minutes(40), Utc::now() + Duration::minutes(30))),
+            id: "".to_string(),
+        },
+        EventWithId {
+            summary: "4".to_string(),
+            description: "".to_string(),
+            duration: WholeDay(Utc::today()),
+            id: "".to_string(),
+        },
+        EventWithId {
+            summary: "5".to_string(),
+            description: "".to_string(),
+            duration: WholeDay(Utc::today() - Duration::days(1)),
+            id: "".to_string(),
+        },
+        EventWithId {
+            summary: "6".to_string(),
+            description: "".to_string(),
+            duration: WholeDay(Utc::today() + Duration::days(1)),
+            id: "".to_string(),
+        },
+    ];
+    let filtered_events = filter_event(events);
+    let filtered_ids = filtered_events.iter().map(|e| e.summary.parse::<i32>().unwrap()).collect::<Vec<i32>>();
+    assert_eq!(filtered_ids, vec![1, 5])
 }

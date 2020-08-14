@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 use std::error::Error;
 
-use chrono::{TimeZone, Utc, Duration};
+use chrono::{Duration, TimeZone, Utc};
 use serde::Deserialize;
+use serde_json::Number;
 
 use crate::calendar::event::*;
+use crate::calendar::event::Duration::StartEnd;
 use crate::common::*;
-use serde_json::Number;
 
 const IDENTIFIER: &str = "league_of_legends";
 
@@ -98,12 +99,14 @@ impl Module for LeagueOfLegends {
 
         Ok(items.iter().map(|item| {
             let game_link = format!("https://matchhistory.na.leagueoflegends.com/en/#match-details/NA1/{}/{}", item.game_id, account_id);
-            EventWithId::new(PartialDayEvent {
+            let start_time = Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.game_creation.as_i64().unwrap() / 1000);
+            let end_time = Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.game_creation.as_i64().unwrap() / 1000 + item.game_duration.as_i64().unwrap());
+            EventWithId {
                 summary: format!("[League of Legends] {}", item.game_mode),
                 description: format!("[link] {}\n[mode] {} {}\n[hash] {}", game_link, item.game_mode, item.game_type, item.id()),
-                start: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.game_creation.as_i64().unwrap() / 1000),
-                end: Utc.ymd(1970, 1, 1).and_hms(0, 0, 0) + Duration::seconds(item.game_creation.as_i64().unwrap() / 1000 + item.game_duration.as_i64().unwrap()),
-            }.into(), item.id())
+                duration: StartEnd((start_time, end_time)),
+                id: item.id(),
+            }
         }).collect())
     }
 }
