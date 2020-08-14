@@ -11,7 +11,7 @@ use crate::common::*;
 const IDENTIFIER: &str = "wakatime";
 
 #[derive(Debug, Deserialize)]
-struct WakatimeItem {
+struct Item {
     #[serde(with = "utc_date_format")]
     created_at: DateTime<Utc>,
     duration: Number,
@@ -22,16 +22,16 @@ struct WakatimeItem {
     user_id: String,
 }
 
-impl WakatimeItem {
-    fn id(self: &WakatimeItem) -> String {
+impl Item {
+    fn id(self: &Item) -> String {
         format!("{}|{}", IDENTIFIER, self.id)
     }
 }
 
 #[derive(Debug, Deserialize)]
-struct WakatimeResponse {
+struct Response {
     branches: Vec<String>,
-    data: Vec<WakatimeItem>,
+    data: Vec<Item>,
     #[serde(with = "utc_date_format")]
     end: DateTime<Utc>,
     #[serde(with = "utc_date_format")]
@@ -76,7 +76,7 @@ impl Module for Wakatime {
     }
 
     fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
-        let items = match serde_json::from_str::<WakatimeResponse>(response.as_str()) {
+        let items = match serde_json::from_str::<Response>(response.as_str()) {
             Ok(json) => json.data,
             Err(e) => panic!("Cannot parse {} response!, {:#?}. The original response reads:\n{}", IDENTIFIER, e, response),
         };

@@ -13,7 +13,7 @@ use regex::Regex;
 const IDENTIFIER: &str = "youtube";
 
 #[derive(Debug)]
-struct YoutubeHistoryItem {
+struct Item {
     link: String,
     title: String,
     author: String,
@@ -21,8 +21,8 @@ struct YoutubeHistoryItem {
     start: DateTime<Local>,
 }
 
-impl YoutubeHistoryItem {
-    fn id(self: &YoutubeHistoryItem) -> String {
+impl Item {
+    fn id(self: &Item) -> String {
         let paths = self.link.split("=").collect::<Vec<&str>>();
         let id = paths[1];
         format!("{}|{}|{}", IDENTIFIER, id, self.start.format("%Y-%m-%d %H:%M").to_string())
@@ -228,7 +228,7 @@ impl Module for Youtube {
                     };
 
                     let offset = self.daylight_saving.get_offset_on(&Local::today());
-                    items.push(YoutubeHistoryItem {
+                    items.push(Item {
                         link: title_element.value().attr("href").unwrap().to_string(),
                         title: title_element.inner_html(),
                         author: author_element.inner_html(),

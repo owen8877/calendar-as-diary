@@ -11,14 +11,14 @@ use crate::common::*;
 const IDENTIFIER: &str = "netflix";
 
 #[derive(Debug, Deserialize)]
-struct NetflixHistoryItem {
+struct Item {
     link: String,
     title: String,
     date: String,
 }
 
-impl NetflixHistoryItem {
-    fn id(self: &NetflixHistoryItem) -> String {
+impl Item {
+    fn id(self: &Item) -> String {
         let paths = self.link.split("/").collect::<Vec<&str>>();
         let id = paths[2].parse::<u32>().unwrap();
         format!("{}|{}|{}", IDENTIFIER, id, self.date)
@@ -67,9 +67,9 @@ impl Module for Netflix {
         let date_selector = Selector::parse("div.date").unwrap();
         let link_selector = Selector::parse("a").unwrap();
 
-        let items: Vec<NetflixHistoryItem> = document.select(&selector).map(|e: ElementRef| {
+        let items: Vec<Item> = document.select(&selector).map(|e: ElementRef| {
             let link_element = e.select(&title_selector).next().unwrap().select(&link_selector).next().unwrap();
-            NetflixHistoryItem {
+            Item {
                 link: String::from(link_element.value().attr("href").unwrap()),
                 title: link_element.inner_html(),
                 date: e.select(&date_selector).next().unwrap().inner_html(),

@@ -11,7 +11,7 @@ use crate::common::*;
 const IDENTIFIER: &str = "bilibili";
 
 #[derive(Debug, Deserialize)]
-struct BilibiliPage {
+struct Page {
     cid: Number,
     page: Number,
     part: String,
@@ -19,19 +19,19 @@ struct BilibiliPage {
 }
 
 #[derive(Debug, Deserialize)]
-struct BilibiliHistoryItem {
+struct Item {
     aid: Number,
     bvid: String,
     duration: Number,
-    page: Option<BilibiliPage>,
+    page: Option<Page>,
     progress: Number,
     redirect_link: String,
     title: String,
     view_at: Number,
 }
 
-impl BilibiliHistoryItem {
-    fn id(self: &BilibiliHistoryItem) -> String {
+impl Item {
+    fn id(self: &Item) -> String {
         format!("{}|{}|{}|{}", IDENTIFIER, self.bvid, match &self.page {
             None => 0,
             Some(page) => page.page.as_i64().unwrap(),
@@ -40,9 +40,9 @@ impl BilibiliHistoryItem {
 }
 
 #[derive(Debug, Deserialize)]
-struct BilibiliResponse {
+struct Response {
     code: Number,
-    data: Vec<BilibiliHistoryItem>,
+    data: Vec<Item>,
 }
 
 pub struct Bilibili {
@@ -81,7 +81,7 @@ impl Module for Bilibili {
     }
 
     fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
-        let items = match serde_json::from_str::<BilibiliResponse>(response.as_str()) {
+        let items = match serde_json::from_str::<Response>(response.as_str()) {
             Ok(json) => json.data,
             Err(e) => panic!("Cannot parse {} response!, {:#?}. The original response reads:\n{}", IDENTIFIER, e, response),
         };

@@ -12,7 +12,7 @@ const IDENTIFIER: &str = "league_of_legends";
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct LeagueOfLegendsResponse {
+struct Response {
     platform_id: String,
     account_id: Number,
     games: GamesObject,
@@ -91,7 +91,7 @@ impl Module for LeagueOfLegends {
     }
 
     fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
-        let (account_id, items) = match serde_json::from_str::<LeagueOfLegendsResponse>(response.as_str()) {
+        let (account_id, items) = match serde_json::from_str::<Response>(response.as_str()) {
             Ok(json) => (json.account_id, json.games.games),
             Err(e) => panic!("Cannot parse {} response!, {:#?}. The original response reads:\n{}", IDENTIFIER, e, response),
         };
