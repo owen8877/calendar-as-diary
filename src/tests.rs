@@ -86,9 +86,9 @@ async fn test_fetch() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
-        Bilibili::new(None),
-        LeagueOfLegends::new(None),
-        Netflix::new(None),
+        // Bilibili::new(None),
+        // LeagueOfLegends::new(None),
+        // Netflix::new(None),
         Wakatime::new(None),
         Youtube::new(None),
     ]);
@@ -106,7 +106,7 @@ async fn test_fetch() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    let mut modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
+    let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
         Bilibili::new(None),
         LeagueOfLegends::new(None),
         Netflix::new(None),

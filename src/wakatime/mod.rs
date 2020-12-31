@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::error::Error;
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 use serde::Deserialize;
 use serde_json::Number;
 
@@ -13,19 +13,14 @@ const IDENTIFIER: &str = "wakatime";
 
 #[derive(Debug, Deserialize)]
 struct Item {
-    #[serde(with = "utc_date_format")]
-    created_at: DateTime<Utc>,
     duration: Number,
-    id: String,
-    machine_name_id: String,
     project: String,
     time: Number,
-    user_id: String,
 }
 
 impl Item {
     fn id(self: &Item) -> String {
-        format!("{}|{}", IDENTIFIER, self.id)
+        format!("{}|{}", IDENTIFIER, self.time)
     }
 }
 
@@ -81,11 +76,14 @@ impl Module for Wakatime {
             Err(e) => panic!("Cannot parse {} response!, {:#?}. The original response reads:\n{}", IDENTIFIER, e, response),
         };
 
-        Ok(items.iter().map(|item| EventWithId {
-            summary: format!("[Wakatime] {}", item.project),
-            description: format!("[link] https://wakatime.com/projects/{}", item.project),
-            duration: StartEnd((item.created_at, item.created_at + Duration::seconds(item.duration.as_f64().unwrap().floor() as i64))),
-            id: item.id(),
+        Ok(items.iter().map(|item| {
+            let created_at = Utc.timestamp(item.time.as_f64().unwrap().floor() as i64, 0);
+            EventWithId {
+                summary: format!("[Wakatime] {}", item.project),
+                description: format!("[link] https://wakatime.com/projects/{}", item.project),
+                duration: StartEnd((created_at, created_at + Duration::seconds(item.duration.as_f64().unwrap().floor() as i64))),
+                id: item.id(),
+            }
         }).collect())
     }
 }
