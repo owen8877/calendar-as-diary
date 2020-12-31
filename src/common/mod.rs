@@ -1,15 +1,15 @@
+use std::{fs, io};
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
 use std::fs::File;
-use std::{io, fs};
 use std::path::Path;
 
+use chrono::{Date, Datelike, Local};
 use reqwest::header::*;
 use serde::{de, Deserialize, Serialize};
 use serde_json as json;
 
 use crate::calendar::event::*;
-use std::error::Error;
-use chrono::{Date, Local, Datelike};
 
 pub mod utc_date_format;
 
@@ -40,11 +40,11 @@ impl RequestConfig {
                 headers_modifier(&default_config.headers, &mut config.headers);
                 config.url = default_config.url;
                 config.calendar_id = default_config.calendar_id;
-            },
+            }
             Err(e) => {
                 warn!("Default {} config not found! {}", source, e);
-                return Err(Box::new(e))
-            },
+                return Err(Box::new(e));
+            }
         }
         match read_json::<RequestConfigJson>(format!("config/{}.json", source).as_str()) {
             Ok(custom_config) => {
@@ -55,8 +55,8 @@ impl RequestConfig {
             }
             Err(e) => {
                 warn!("Custom {} config file not found! {}", source, e);
-                return Err(Box::new(e))
-            },
+                return Err(Box::new(e));
+            }
         }
 
         if let Some(calendar_id) = calendar_id {
@@ -99,7 +99,7 @@ pub fn headers_modifier(headers: &HashMap<String, String>, header_map: &mut Head
             Some(header) => {
                 debug!("Inserted header {} with value {}.", key, headers[key]);
                 header_map.insert(header, headers[key].parse().unwrap());
-            },
+            }
             None => panic!("Unknown header {}.", key),
         }
     }
@@ -107,16 +107,16 @@ pub fn headers_modifier(headers: &HashMap<String, String>, header_map: &mut Head
 
 fn get_header_dict() -> HashMap<&'static str, HeaderName> {
     let mut dict = HashMap::<&str, HeaderName>::new();
-    dict.insert("accept",                    ACCEPT);
-    dict.insert("accept-language",           ACCEPT_LANGUAGE);
-    dict.insert("authorization",             AUTHORIZATION);
-    dict.insert("cache-control",             CACHE_CONTROL);
-    dict.insert("cookie",                    COOKIE);
-    dict.insert("dnt",                       DNT);
-    dict.insert("origin",                    ORIGIN);
-    dict.insert("referer",                   REFERER);
+    dict.insert("accept", ACCEPT);
+    dict.insert("accept-language", ACCEPT_LANGUAGE);
+    dict.insert("authorization", AUTHORIZATION);
+    dict.insert("cache-control", CACHE_CONTROL);
+    dict.insert("cookie", COOKIE);
+    dict.insert("dnt", DNT);
+    dict.insert("origin", ORIGIN);
+    dict.insert("referer", REFERER);
     dict.insert("upgrade-insecure-requests", UPGRADE_INSECURE_REQUESTS);
-    dict.insert("user-agent",                USER_AGENT);
+    dict.insert("user-agent", USER_AGENT);
 
     dict
 }
@@ -128,9 +128,12 @@ pub struct DaylightSavingConfigWrapper {
 
 #[derive(Debug, Deserialize)]
 pub struct DaylightSavingConfig {
-    pub start: (u32, u32), // date when daylight saving is effective, normally in spring
-    pub end: (u32, u32), // date when daylight saving is no longer effective, normally in fall
-    pub effective: i32, // daylight saving timezone
+    pub start: (u32, u32),
+    // date when daylight saving is effective, normally in spring
+    pub end: (u32, u32),
+    // date when daylight saving is no longer effective, normally in fall
+    pub effective: i32,
+    // daylight saving timezone
     pub standard: i32,
     pub local: i32, // timezone on the server machine
 }
@@ -155,7 +158,7 @@ pub fn read_json<T: de::DeserializeOwned>(file_path: &str) -> Result<T, io::Erro
                 Ok(result) => Ok(result),
                 Err(e) => Err(e.into()),
             }
-        },
+        }
         Err(e) => Err(e),
     }
 }
@@ -173,7 +176,10 @@ pub fn path_exists(path: &str) -> bool {
 
 pub fn ensure_directory(path: &str) {
     if !path_exists(path) {
-        fs::create_dir(path);
+        match fs::create_dir(path) {
+            Ok(_) => debug!("Created directory {} which was previously missing.", path),
+            Err(e) => warn!("Cannot create missing directory {} where the error {} is raised; skipped.", path, e),
+        }
     }
 }
 
@@ -186,7 +192,11 @@ pub fn write_json<T: Serialize>(file_path: &str, object: &T) -> Result<(), io::E
 
 pub fn dump_event_id_wrapper(identifier: &str, ids: &HashSet<String>) {
     ensure_directory("dump");
-    write_json::<HashSet<String>>(format!("dump/{}.json", identifier).as_str(), ids);
+    let file_path = format!("dump/{}.json", identifier);
+    match write_json::<HashSet<String>>(file_path.as_str(), ids) {
+        Ok(_) => debug!("Dumped json to file {}.", file_path.as_str()),
+        Err(e) => warn!("Cannot dump json to file {} where the error {} is raised!", file_path.as_str(), e),
+    }
 }
 
 #[cfg(test)]
