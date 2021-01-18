@@ -1,7 +1,8 @@
 extern crate google_calendar3 as calendar3;
 extern crate hyper;
 extern crate hyper_rustls;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate regex;
 extern crate reqwest;
 extern crate serde_derive;
@@ -57,10 +58,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         calendar_post(&hub, module.get_config(), event.into());
                     }
                     module.dump()
-                },
+                }
                 Err(e) => error!("{}", e),
             }
-
         }
         info!("Waiting for timer to pick up...")
     }
@@ -110,7 +110,7 @@ fn filter_event(events: Vec<EventWithId>) -> Vec<EventWithId> {
         })
         .filter(|event| {
             if event.id.contains("bilibili") {
-                return true
+                return true;
             }
             if match &event.duration {
                 StartEnd((start, end)) => *end - *start > Duration::minutes(5),

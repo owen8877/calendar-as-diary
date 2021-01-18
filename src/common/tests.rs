@@ -1,5 +1,6 @@
-use super::*;
 use chrono::TimeZone;
+
+use super::*;
 
 #[test]
 fn test_get_offset_on() {
@@ -8,7 +9,7 @@ fn test_get_offset_on() {
         end: (11, 4),
         effective: -5,
         standard: -6,
-        local: 0
+        local: 0,
     };
 
     assert_eq!(config.get_offset_on(&Local.ymd(2020, 1, 2)), -6);

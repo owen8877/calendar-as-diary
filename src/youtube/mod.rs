@@ -57,9 +57,7 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl Error for ParseError {
-
-}
+impl Error for ParseError {}
 
 impl Module for Youtube {
     fn new(calendar_id: Option<String>) -> Result<Box<dyn Module>, Box<dyn Error>> {
@@ -139,33 +137,33 @@ impl Module for Youtube {
                             }
                         }
                     }
-                },
+                }
                 "c-wiz" => {
                     let card_root = e
                         .select(&div_selector).next().unwrap()
-                            .select(&div_selector).next().unwrap()
-                                .select(&div_selector).next().unwrap()
-                                .next_sibling().and_then(ElementRef::wrap).unwrap();
+                        .select(&div_selector).next().unwrap()
+                        .select(&div_selector).next().unwrap()
+                        .next_sibling().and_then(ElementRef::wrap).unwrap();
                     let left_panel = card_root.select(&div_selector).next().unwrap();
                     let title_element = left_panel
                         .select(&div_selector).next().unwrap()
-                            .select(&a_selector).next().unwrap();
+                        .select(&a_selector).next().unwrap();
                     let author_element = left_panel
                         .select(&div_selector).next().unwrap()
                         .next_sibling().and_then(ElementRef::wrap).unwrap()
-                            .select(&a_selector).next().unwrap();
+                        .select(&a_selector).next().unwrap();
                     let start_time_element = left_panel
                         .select(&div_selector).next().unwrap()
                         .next_sibling().and_then(ElementRef::wrap).unwrap()
                         .next_sibling().and_then(ElementRef::wrap).unwrap()
-                            .select(&div_selector).next().unwrap();
+                        .select(&div_selector).next().unwrap();
                     let total_length_element = card_root
                         .select(&div_selector).next().unwrap()
                         .next_sibling().and_then(ElementRef::wrap).unwrap()
-                            .select(&a_selector).next().unwrap()
-                                .select(&div_selector).next().unwrap()
-                                    .select(&div_selector).next().unwrap()
-                                    .next_sibling().and_then(ElementRef::wrap).unwrap();
+                        .select(&a_selector).next().unwrap()
+                        .select(&div_selector).next().unwrap()
+                        .select(&div_selector).next().unwrap()
+                        .next_sibling().and_then(ElementRef::wrap).unwrap();
                     let percent_element = {
                         match total_length_element.next_sibling().and_then(ElementRef::wrap) {
                             None => None,
@@ -187,7 +185,7 @@ impl Module for Youtube {
                                 } else {
                                     (hour % 12 + 12, minute)
                                 }
-                            },
+                            }
                         }
                     };
 
@@ -202,7 +200,7 @@ impl Module for Youtube {
                                     Some(cap) =>
                                         *&cap[1].parse::<u32>().unwrap() * 60 + *&cap[2].parse::<u32>().unwrap()
                                 }
-                            },
+                            }
                             Some(cap) =>
                                 *&cap[1].parse::<u32>().unwrap() * 3600
                                     + *&cap[2].parse::<u32>().unwrap() * 60
@@ -225,7 +223,7 @@ impl Module for Youtube {
                                     total_length * percent / 100
                                 }
                             }
-                        },
+                        }
                     };
 
                     let offset = self.daylight_saving.get_offset_on(&Local::today());
@@ -234,9 +232,9 @@ impl Module for Youtube {
                         title: title_element.inner_html(),
                         author: author_element.inner_html(),
                         length: watched_length,
-                        start: date.and_hms(start_hour_minute.0, start_hour_minute.1, 0) - Duration::hours(offset as i64)
+                        start: date.and_hms(start_hour_minute.0, start_hour_minute.1, 0) - Duration::hours(offset as i64),
                     })
-                },
+                }
                 t => return Err(Box::new(UnknownElement(t.to_string()))),
             }
         }

@@ -15,7 +15,7 @@ fn list_all_calendar() {
             for entry in vec {
                 println!("Name: {}, id: {}.", entry.summary.unwrap(), entry.id.unwrap());
             }
-        },
+        }
     }
 }
 
@@ -45,7 +45,7 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             }
-        },
+        }
     }
 
     // Then add our new test calendar
@@ -74,7 +74,7 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
                     calendar_post(&hub, module.get_config(), event.into());
                 }
             }
-        },
+        }
         Err(e) => panic!("Error occurred when insert the test calendar! {}", e),
     }
 

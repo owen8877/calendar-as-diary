@@ -42,7 +42,7 @@ pub fn calendar_post(hub: &CalHub, config: &RequestConfig, req: Event) {
                     } else {
                         "[No start time]".to_string()
                     }
-                },
+                }
                 None => "[No start time]".to_string(),
             });
             debug!("Detail info about this event: {:?}.", &event);
