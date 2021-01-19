@@ -74,7 +74,8 @@ pub trait Module {
     fn get_event_ids(&mut self) -> &mut HashSet<String>;
     fn get_identifier(&self) -> &str;
     fn get_request_url(&self) -> String;
-    fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>>;
+    fn need_for_detail(&self, response: &String) -> Option<Vec<String>>;
+    fn process_response_into_event_with_id(&self, responses: Vec<String>) -> Result<Vec<EventWithId>, Box<dyn Error>>;
 }
 
 pub fn filter_loaded_modules(modules: Vec<Result<Box<dyn Module>, Box<dyn Error>>>) -> Vec<Box<dyn Module>> {

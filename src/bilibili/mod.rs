@@ -81,7 +81,12 @@ impl Module for Bilibili {
         self.request_config.url.to_string()
     }
 
-    fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
+    fn need_for_detail(&self, _response: &String) -> Option<Vec<String>> {
+        None
+    }
+
+    fn process_response_into_event_with_id(&self, responses: Vec<String>) -> Result<Vec<EventWithId>, Box<dyn Error>> {
+        let response = responses[0].clone();
         let items = match serde_json::from_str::<Response>(response.as_str()) {
             Ok(json) => json.data,
             Err(e) => panic!("Cannot parse {} response!, {:#?}. The original response reads:\n{}", IDENTIFIER, e, response),

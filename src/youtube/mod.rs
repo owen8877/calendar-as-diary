@@ -91,7 +91,12 @@ impl Module for Youtube {
         self.request_config.url.to_string()
     }
 
-    fn process_response_into_event_with_id(&self, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
+    fn need_for_detail(&self, _response: &String) -> Option<Vec<String>> {
+        None
+    }
+
+    fn process_response_into_event_with_id(&self, responses: Vec<String>) -> Result<Vec<EventWithId>, Box<dyn Error>> {
+        let response = responses[0].clone();
         let document = Html::parse_document(response.as_str());
         let selector = Selector::parse("c-wiz[data-token]").unwrap();
         let div_selector = Selector::parse("div").unwrap();

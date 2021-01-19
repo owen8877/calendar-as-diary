@@ -21,6 +21,7 @@ use crate::calendar::event::EventWithId;
 use crate::common::*;
 use crate::league_of_legends::*;
 use crate::netflix::*;
+use crate::ut_oden_seminar::*;
 use crate::wakatime::*;
 use crate::youtube::*;
 
@@ -29,6 +30,7 @@ mod common;
 mod calendar;
 mod league_of_legends;
 mod netflix;
+mod ut_oden_seminar;
 mod youtube;
 mod wakatime;
 
@@ -51,7 +53,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("Timer picked up at {:#?}", SystemTime::now());
         for mut module in &mut modules {
             let response = fetch_data(&mut module).await?;
-            let events = filter_events_to_be_posted(&mut module, response);
+            let detail_response = make_detail(&mut module, response).await?;
+            let events = filter_events_to_be_posted(&mut module, detail_response);
             match events {
                 Ok(events) => {
                     for event in events {
@@ -80,8 +83,27 @@ async fn fetch_data(module: &mut Box<dyn Module>) -> Result<String, Box<dyn std:
     Ok(response)
 }
 
-fn filter_events_to_be_posted(module: &mut Box<dyn Module>, response: String) -> Result<Vec<EventWithId>, Box<dyn Error>> {
-    let fetched_events = module.process_response_into_event_with_id(response)?;
+async fn make_detail(module: &mut Box<dyn Module>, response: String) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    if let Some(further_request_urls) = module.need_for_detail(&response) {
+        let mut responses = vec![];
+        for url in further_request_urls {
+            let response = reqwest::Client::new()
+                .get(&url)
+                .headers(module.get_config().headers.clone())
+                .send()
+                .await?
+                .text()
+                .await?;
+            responses.push(response);
+        }
+        Ok(responses)
+    } else {
+        Ok(vec![response])
+    }
+}
+
+fn filter_events_to_be_posted(module: &mut Box<dyn Module>, responses: Vec<String>) -> Result<Vec<EventWithId>, Box<dyn Error>> {
+    let fetched_events = module.process_response_into_event_with_id(responses)?;
     let filtered_events = filter_event(fetched_events);
     Ok(filtered_events.into_iter().filter(|event| {
         if module.get_event_ids().contains(event.id.as_str()) {
@@ -98,6 +120,9 @@ fn filter_events_to_be_posted(module: &mut Box<dyn Module>, response: String) ->
 fn filter_event(events: Vec<EventWithId>) -> Vec<EventWithId> {
     events.into_iter()
         .filter(|event| {
+            if event.id.contains("ut_oden_seminar") {
+                return true;
+            }
             if match &event.duration {
                 StartEnd((_, end)) => *end < Utc::now() - Duration::hours(1),
                 WholeDay(w) => *w <= Utc::today() - Duration::days(1),

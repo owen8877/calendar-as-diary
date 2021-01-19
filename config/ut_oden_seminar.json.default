@@ -1,0 +1,9 @@
+{
+  "calendar_id": "@group.calendar.google.com",
+  "url": "https://www.oden.utexas.edu/about/events-seminars/",
+  "headers": {
+    "accept": "*/*",
+    "dnt": "1",
+    "user-agent": "Mozilla/5.0"
+  }
+}

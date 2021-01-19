@@ -60,16 +60,18 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
             println!("The test calendar is {}. Please visit https://calendar.google.com/calendar/r.", &calendar_id);
 
             let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
-                Bilibili::new(Some(calendar_id.clone())),
-                LeagueOfLegends::new(Some(calendar_id.clone())),
-                Netflix::new(Some(calendar_id.clone())),
-                Wakatime::new(Some(calendar_id.clone())),
-                Youtube::new(Some(calendar_id.clone())),
+                // Bilibili::new(Some(calendar_id.clone())),
+                // LeagueOfLegends::new(Some(calendar_id.clone())),
+                // Netflix::new(Some(calendar_id.clone())),
+                // Wakatime::new(Some(calendar_id.clone())),
+                UTOdenSeminar::new(Some(calendar_id.clone())),
+                // Youtube::new(Some(calendar_id.clone())),
             ]);
 
             for mut module in modules {
                 let response = fetch_data(&mut module).await?;
-                let events = filter_events_to_be_posted(&mut module, response)?;
+                let detail_response = make_detail(&mut module, response).await?;
+                let events = filter_events_to_be_posted(&mut module, detail_response)?;
                 for event in events {
                     calendar_post(&hub, module.get_config(), event.into());
                 }
@@ -89,13 +91,15 @@ async fn test_fetch() -> Result<(), Box<dyn std::error::Error>> {
         // Bilibili::new(None),
         // LeagueOfLegends::new(None),
         // Netflix::new(None),
-        Wakatime::new(None),
-        Youtube::new(None),
+        UTOdenSeminar::new(None),
+        // Wakatime::new(None),
+        // Youtube::new(None),
     ]);
 
     for mut module in modules {
         let response = fetch_data(&mut module).await?;
-        let events = filter_events_to_be_posted(&mut module, response)?;
+        let detail_response = make_detail(&mut module, response).await?;
+        let events = filter_events_to_be_posted(&mut module, detail_response)?;
         println!("{:#?}", events);
     }
 
@@ -116,7 +120,8 @@ async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
 
     for mut module in modules {
         let response = fetch_data(&mut module).await?;
-        filter_events_to_be_posted(&mut module, response)?;
+        let detail_response = make_detail(&mut module, response).await?;
+        filter_events_to_be_posted(&mut module, detail_response)?;
         // We skip the posting-to-calendar step
         module.dump()
     }
@@ -143,7 +148,8 @@ async fn test_interval() -> Result<(), Box<dyn std::error::Error>> {
         info!("Timer picked up at {:#?}", SystemTime::now());
         for mut module in &mut modules {
             let response = fetch_data(&mut module).await?;
-            let events = filter_events_to_be_posted(&mut module, response)?;
+            let detail_response = make_detail(&mut module, response).await?;
+            let events = filter_events_to_be_posted(&mut module, detail_response)?;
             println!("{}", events.len());
             // We skip the posting-to-calendar step and the dumping step
         }
