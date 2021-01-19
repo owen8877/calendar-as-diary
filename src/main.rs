@@ -44,6 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         LeagueOfLegends::new(None),
         Netflix::new(None),
         Wakatime::new(None),
+        UTOdenSeminar::new(None),
         Youtube::new(None),
     ]);
     let mut interval = time::interval(std::time::Duration::from_millis(60 * 60 * 1000));
