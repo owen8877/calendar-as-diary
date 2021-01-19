@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 
-use chrono::{DateTime, Local, TimeZone};
+use chrono::{DateTime, FixedOffset, Local, TimeZone};
 use regex::Regex;
 use scraper::{Html, Selector};
 
@@ -19,8 +19,8 @@ struct Item {
     title: String,
     description: String,
     seminar_id: u32,
-    start: DateTime<Local>,
-    end: DateTime<Local>,
+    start: DateTime<FixedOffset>,
+    end: DateTime<FixedOffset>,
 }
 
 impl Item {
@@ -116,13 +116,14 @@ fn parse_seminar(response: &str) -> Result<Item, Box<dyn Error>> {
         .find(page_div.inner_html().as_str()).ok_or(UnwrapNone("zoom link match".to_string()))?
         .as_str().to_string();
 
+    let time_zone: FixedOffset = FixedOffset::west(6 * 60 * 60);
     Ok(Item {
         link,
         title,
         description,
         seminar_id,
-        start: Local.ymd(year, month as u32 + 1, day as u32).and_hms(start_hour as u32, start_minute as u32, 0),
-        end: Local.ymd(year, month as u32 + 1, day as u32).and_hms(end_hour as u32, end_minute as u32, 0),
+        start: time_zone.ymd(year, month as u32 + 1, day as u32).and_hms(start_hour as u32, start_minute as u32, 0),
+        end: time_zone.ymd(year, month as u32 + 1, day as u32).and_hms(end_hour as u32, end_minute as u32, 0),
     })
 }
 
