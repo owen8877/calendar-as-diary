@@ -116,7 +116,7 @@ fn parse_seminar(response: &str) -> Result<Item, Box<dyn Error>> {
         .find(page_div.inner_html().as_str()).ok_or(UnwrapNone("zoom link match".to_string()))?
         .as_str().to_string();
 
-    let time_zone: FixedOffset = FixedOffset::west(6 * 60 * 60);
+    let time_zone: FixedOffset = FixedOffset::west(5 * 60 * 60); // Daylight saving mode
     Ok(Item {
         link,
         title,
