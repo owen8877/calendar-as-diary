@@ -112,7 +112,7 @@ fn parse_seminar(response: &str) -> Result<Item, Box<dyn Error>> {
         .captures(page_div.inner_html().as_str()).ok_or(CaptureFails("seminar id".to_string()))?
         .get(1).ok_or(UnwrapNone("seminar id capture".to_string()))?
         .as_str().parse::<u32>()?;
-    let link = Regex::new(r"https://utexas.zoom.us/j/\d+").unwrap()
+    let link = Regex::new(r"https://.*utexas.zoom.us/j/\d+").unwrap()
         .find(page_div.inner_html().as_str()).ok_or(UnwrapNone("zoom link match".to_string()))?
         .as_str().to_string();
 
@@ -215,7 +215,7 @@ fn test_parse_seminar() {
 				<h3>K. G.</h3>
 				<p>In this talk</p>
 				<p>For questions, please contact: <a href=\"mailto:a@example.edu?subject=Question Regarding - Oden Institute Event:1001\">a@example.edu</a></p>
-				&nbsp;Event Stream Link: <a href=\"https://utexas.zoom.us/j/973\" target=\"_blank\">Click Here to Watch</a>
+				&nbsp;Event Stream Link: <a href=\"https://prefix-utexas.zoom.us/j/973\" target=\"_blank\">Click Here to Watch</a>
         </div>
     </div>";
     let item = parse_seminar(reponse);
