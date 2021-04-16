@@ -65,8 +65,14 @@ fn parse_time(time_str: &str) -> Result<(i32, i32), Box<dyn Error>> {
     } else {
         (hour_minute_str.parse::<i32>()?, 0)
     };
-    if time_str.contains("PM") {
-        hour += 12;
+    if hour == 12 {
+        if time_str.contains("AM") {
+            hour = 0;
+        }
+    } else {
+        if time_str.contains("PM") {
+            hour += 12;
+        }
     }
     Ok((hour, minute))
 }
@@ -96,9 +102,9 @@ fn parse_seminar(response: &str) -> Result<Item, Box<dyn Error>> {
     let day = date_captures.get(3).ok_or(CaptureFails("day".to_string()))?
         .as_str().parse::<i32>()?;
     let month_str = date_captures.get(2).ok_or(CaptureFails("month".to_string()))?
-        .as_str().to_string();
+        .as_str();
     let month_strs = vec!["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    let (month, _) = month_strs.iter().enumerate().find(|(_i, m)| *m == &month_str.as_str()).ok_or(UnknownMonth(month_str))?;
+    let (month, _) = month_strs.iter().enumerate().find(|(_i, m)| *m == &month_str).ok_or(UnknownMonth(month_str.to_string()))?;
     let year = date_captures.get(4).ok_or(CaptureFails("year".to_string()))?
         .as_str().parse::<i32>().unwrap();
 
