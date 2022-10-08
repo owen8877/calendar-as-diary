@@ -49,7 +49,7 @@ pub async fn calendar_post(hub: &mut CalHub, config: &RequestConfig, req: Event)
 pub async fn init_hub() -> CalHub {
     let secret: oauth2::ApplicationSecret = yup_oauth2::read_application_secret("config/clientsecret.json")
         .await.expect("client secret not found!");
-    let auth = oauth2::InstalledFlowAuthenticator::builder(secret, oauth2::InstalledFlowReturnMethod::HTTPRedirect)
+    let auth = oauth2::InstalledFlowAuthenticator::builder(secret, oauth2::InstalledFlowReturnMethod::Interactive)
         .persist_tokens_to_disk("config/tokenstorage.json").build().await.unwrap();
     let hub = CalendarHub::new(hyper::Client::builder().build(hyper_rustls::HttpsConnectorBuilder::new().with_native_roots().https_or_http().enable_http1().enable_http2().build()), auth);
     hub
