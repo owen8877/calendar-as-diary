@@ -1,4 +1,4 @@
-use calendar3::{Event, EventDateTime};
+use calendar3::api::{Event, EventDateTime};
 use chrono::{Date, DateTime, Utc};
 
 #[derive(Debug)]

@@ -35,17 +35,17 @@ mod youtube;
 mod wakatime;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
-    let hub = init_hub();
+    let mut hub = init_hub().await;
     let mut modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
-        Bilibili::new(None),
-        LeagueOfLegends::new(None),
-        Netflix::new(None),
-        Wakatime::new(None),
+        // Bilibili::new(None),
+        // LeagueOfLegends::new(None),
+        // Netflix::new(None),
+        // Wakatime::new(None),
         UTOdenSeminar::new(None),
-        Youtube::new(None),
+        // Youtube::new(None),
     ]);
     let mut interval = time::interval(std::time::Duration::from_millis(60 * 60 * 1000));
 
@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             match events {
                 Ok(events) => {
                     for event in events {
-                        calendar_post(&hub, module.get_config(), event.into());
+                        calendar_post(&mut hub, module.get_config(), event.into()).await;
                     }
                     module.dump()
                 }

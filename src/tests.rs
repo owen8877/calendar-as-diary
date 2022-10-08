@@ -1,15 +1,13 @@
-use calendar3::{Calendar, CalendarListEntry};
-
-use calendar::CalHub;
+use calendar3::api::{Calendar, CalendarListEntry};
 
 use super::*;
 
-#[test]
-fn list_all_calendar() {
+#[tokio::test]
+async fn list_all_calendar() {
     env_logger::init();
-    let hub = init_hub();
+    let mut hub = init_hub().await;
 
-    match get_all_calendars(&hub) {
+    match get_all_calendars(&mut hub).await {
         None => println!("No calendars."),
         Some(vec) => {
             for entry in vec {
@@ -19,8 +17,8 @@ fn list_all_calendar() {
     }
 }
 
-fn get_all_calendars(hub: &CalHub) -> Option<Vec<CalendarListEntry>> {
-    match hub.calendar_list().list().doit() {
+async fn get_all_calendars(hub: &mut CalHub) -> Option<Vec<CalendarListEntry>> {
+    match hub.calendar_list().list().doit().await {
         Ok((_resp, calendar_list)) => calendar_list.items,
         Err(e) => panic!("{:#?}", e),
     }
@@ -29,17 +27,17 @@ fn get_all_calendars(hub: &CalHub) -> Option<Vec<CalendarListEntry>> {
 #[tokio::test]
 async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let hub = init_hub();
+    let mut hub = init_hub().await;
 
     let test_calendar_name = "Test purpose only";
 
     // First clear any calendar of the same name
-    match get_all_calendars(&hub) {
+    match get_all_calendars(&mut hub).await {
         None => println!("No calendars."),
         Some(vec) => {
             for entry in vec {
                 if entry.summary.unwrap() == test_calendar_name {
-                    match hub.calendars().delete(entry.id.unwrap().as_str()).doit() {
+                    match hub.calendars().delete(entry.id.unwrap().as_str()).doit().await {
                         Ok(_) => println!("Previous test calendar deleted."),
                         Err(e) => panic!("{:#?}", e),
                     }
@@ -53,7 +51,7 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
         summary: Some(test_calendar_name.to_string()),
         ..Calendar::default()
     };
-    let result = hub.calendars().insert(req).doit();
+    let result = hub.calendars().insert(req).doit().await;
     match result {
         Ok((_resp, calendar)) => {
             let calendar_id = calendar.id.unwrap();
@@ -73,7 +71,7 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
                 let detail_response = make_detail(&mut module, response).await?;
                 let events = filter_events_to_be_posted(&mut module, detail_response)?;
                 for event in events {
-                    calendar_post(&hub, module.get_config(), event.into());
+                    calendar_post(&mut hub, module.get_config(), event.into()).await;
                 }
             }
         }
@@ -84,7 +82,7 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test]
-async fn test_fetch() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_fetch() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
     let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
@@ -107,15 +105,16 @@ async fn test_fetch() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test]
-async fn test_dump() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_dump() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
     let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
-        Bilibili::new(None),
-        LeagueOfLegends::new(None),
-        Netflix::new(None),
-        Wakatime::new(None),
-        Youtube::new(None),
+        // Bilibili::new(None),
+        // LeagueOfLegends::new(None),
+        // Netflix::new(None),
+        UTOdenSeminar::new(None),
+        // Wakatime::new(None),
+        // Youtube::new(None),
     ]);
 
     for mut module in modules {

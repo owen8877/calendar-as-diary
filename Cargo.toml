@@ -9,19 +9,19 @@ edition = "2018"
 [dependencies]
 chrono = "*"
 env_logger = "*"
-google-calendar3 = "*"
+google-calendar3 = "^4.0"
 # This project intentionally uses an old version of Hyper. See
 # https://github.com/Byron/google-apis-rs/issues/173 for more
 # information.
-hyper = "^0.10"
+hyper = "^0.14"
 hyper-native-tls = "^0.3"
-hyper-rustls = "^0.6"
+hyper-rustls = "^0.23"
 log = "*"
 regex = "^1.0.0"
-reqwest = { version = "^0.10", features = ["json"] }
-scraper = "^0.12.0"
+reqwest = { version = "^0.11", features = ["json"] }
+scraper = "^0.13.0"
 serde = { version = "^1.0", features = ["derive"] }
 serde_derive = "^1.0"
 serde_json = "^1.0"
-tokio = { version = "^0.2", features = ["full"] }
-yup-oauth2 = "^1.0"
+tokio = { version = "^1.21", features = ["full"] }
+yup-oauth2 = "^7.0"
