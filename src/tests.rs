@@ -71,6 +71,7 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
                 let detail_response = make_detail(&mut module, response).await?;
                 let events = filter_events_to_be_posted(&mut module, detail_response)?;
                 for event in events {
+                    println!("{:?}", event);
                     calendar_post(&mut hub, module.get_config(), event.into()).await;
                 }
             }

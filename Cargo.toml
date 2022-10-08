@@ -16,6 +16,7 @@ google-calendar3 = "^4.0"
 hyper = "^0.14"
 hyper-native-tls = "^0.3"
 hyper-rustls = "^0.23"
+lazy_static = "1.4.0"
 log = "*"
 regex = "^1.0.0"
 reqwest = { version = "^0.11", features = ["json"] }
