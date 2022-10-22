@@ -20,6 +20,7 @@ use crate::calendar::*;
 use crate::calendar::event::Duration::{StartEnd, WholeDay};
 use crate::calendar::event::EventWithId;
 use crate::common::*;
+use crate::league_of_graphs::*;
 use crate::league_of_legends::*;
 use crate::netflix::*;
 use crate::ut_oden_seminar::*;
@@ -44,6 +45,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut hub = init_hub().await;
     let mut modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
         // Bilibili::new(None),
+        LeagueOfGraphs::new(None),
         // LeagueOfLegends::new(None),
         // Netflix::new(None),
         // Wakatime::new(None),
