@@ -64,7 +64,7 @@ mod tests {
         // From the official test example.
         env_logger::init();
         let secret = yup_oauth2::read_application_secret("config/clientsecret.json").await.expect("clientsecret.json");
-        let mut auth = InstalledFlowAuthenticator::builder(secret, InstalledFlowReturnMethod::Interactive)
+        let auth = InstalledFlowAuthenticator::builder(secret, InstalledFlowReturnMethod::Interactive)
             .persist_tokens_to_disk("config/tokencache.json").build().await.unwrap();
         let scopes = &[
             "https://www.googleapis.com/auth/calendar",

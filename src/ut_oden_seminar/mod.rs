@@ -1,13 +1,11 @@
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
-use std::fmt::write;
 
 use chrono::{DateTime, FixedOffset, TimeZone};
+use lazy_static::lazy_static;
 use regex::Regex;
 use scraper::{Html, Selector};
-
-use lazy_static::lazy_static;
 
 use crate::calendar::event::*;
 use crate::calendar::event::Duration::StartEnd;
@@ -215,7 +213,7 @@ impl Module for UTOdenSeminar {
                     id: r.id(),
                     summary: r.title,
                     description: r.description,
-                    duration: StartEnd((DateTime::from(r.start), DateTime::from(r.end))),
+                    duration: StartEnd(DateTime::from(r.start), DateTime::from(r.end)),
                 }
             })
             .collect())
@@ -226,15 +224,14 @@ impl Module for UTOdenSeminar {
 mod tests {
     use std::error::Error;
 
-    use regex::Regex;
-
     use lazy_static::lazy_static;
+    use regex::Regex;
 
     use crate::ut_oden_seminar::{parse_seminar, parse_time};
 
     #[test]
     fn test_regex() {
-        let reponse = "
+        let response = "
 <link type=\"text/css\" rel=\"stylesheet\" href=\"/static/news_events/events/events.css\" />
 <h3 class=\"event__title\"><a href=\"/news-and-events/events/1727---R\">Stochastic </a></h3>
 <p class=\"oden--event-card-location\">
@@ -243,25 +240,25 @@ mod tests {
         lazy_static! {
             static ref RE: Regex = Regex::new(r"/news-and-events/events/\d+").unwrap();
         }
-        for mat in RE.find_iter(reponse) {
+        for mat in RE.find_iter(response) {
             println!("Found: {}", mat.as_str());
         }
     }
 
     #[test]
     fn test_regex_date() {
-        let reponse = "Tuesday Oct 11, 2022";
+        let response = "Tuesday Oct 11, 2022";
         lazy_static! {
             static ref RE: Regex = Regex::new(r"(\w+) (\w+) (\d+), (\d+)").unwrap();
         }
-        for mat in RE.captures_iter(reponse) {
+        for mat in RE.captures_iter(response) {
             println!("0: {}, 1: {}, 2: {}, 3: {}", &mat[0], &mat[1], &mat[2], &mat[3]);
         }
     }
 
     #[test]
     fn test_parse_seminar() {
-        let reponse = "
+        let response = "
 <link rel=\"canonical\" href=\"https://oden.utexas.edu/news-and-events/events/1708/\" />
 <div class=\"cell small-12 medium-12 large-8 \">
     <p class=\"event__eyebrow\">
@@ -292,7 +289,7 @@ mod tests {
     <h2>Biography</h2>
     <p>Andrey obtained his&nbsp;Ph.D. in Computer Science from Virginia Tech (VT), and his B.S. in Mathematics from Rensselaer Polytechnic Institute (RPI).&nbsp;&nbsp;During the course of his Ph.D., Andrey has worked on ensemble filtering techniques including work with multifidelity data assimilation and with covariance shrinkage.&nbsp;He has also worked on extending and applying non-linear dimensionality reduction techniques to constructing efficient reduced order models for use in scientific applications.&nbsp;Andrey's other interests include data-driven science, knowledge-guided machine learning, and time integration</p>
 </div>";
-        match parse_seminar(reponse) {
+        match parse_seminar(response) {
             Ok(item) => println!("{:#?}", item),
             Err(e) => println!("{:#?}", e),
         }

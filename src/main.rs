@@ -1,3 +1,4 @@
+extern crate core;
 extern crate google_calendar3 as calendar3;
 extern crate hyper;
 extern crate hyper_rustls;
@@ -29,12 +30,14 @@ mod bilibili;
 mod common;
 mod calendar;
 mod league_of_legends;
+mod league_of_graphs;
 mod netflix;
 mod ut_oden_seminar;
 mod youtube;
 mod wakatime;
 
 #[tokio::main]
+#[allow(dead_code)]
 async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
@@ -72,7 +75,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn fetch_data(module: &mut Box<dyn Module>) -> Result<String, Box<dyn std::error::Error>> {
+async fn fetch_data(module: &mut Box<dyn Module>) -> Result<String, Box<dyn Error>> {
     let response = reqwest::Client::new()
         .get(&module.get_request_url())
         .headers(module.get_config().headers.clone())
@@ -125,7 +128,7 @@ fn filter_event(events: Vec<EventWithId>) -> Vec<EventWithId> {
                 return true;
             }
             if match &event.duration {
-                StartEnd((_, end)) => *end < Utc::now() - Duration::hours(1),
+                StartEnd(_, end) => *end < Utc::now() - Duration::hours(1),
                 WholeDay(w) => *w <= Utc::today() - Duration::days(1),
             } {
                 true
@@ -139,7 +142,7 @@ fn filter_event(events: Vec<EventWithId>) -> Vec<EventWithId> {
                 return true;
             }
             if match &event.duration {
-                StartEnd((start, end)) => *end - *start > Duration::minutes(5),
+                StartEnd(start, end) => *end - *start > Duration::minutes(5),
                 WholeDay(_) => true,
             } {
                 true

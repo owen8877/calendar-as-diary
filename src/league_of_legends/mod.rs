@@ -109,7 +109,7 @@ impl Module for LeagueOfLegends {
             EventWithId {
                 summary: format!("[League of Legends] {}", item.game_mode),
                 description: format!("[link] {}\n[mode] {} {}\n[hash] {}", game_link, item.game_mode, item.game_type, item.id()),
-                duration: StartEnd((start_time, end_time)),
+                duration: StartEnd(start_time, end_time),
                 id: item.id(),
             }
         }).collect())

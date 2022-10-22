@@ -86,7 +86,7 @@ impl Module for Wakatime {
             EventWithId {
                 summary: format!("[Wakatime] {}", item.project),
                 description: format!("[link] https://wakatime.com/projects/{}", item.project),
-                duration: StartEnd((created_at, created_at + Duration::seconds(item.duration.as_f64().unwrap().floor() as i64))),
+                duration: StartEnd(created_at, created_at + Duration::seconds(item.duration.as_f64().unwrap().floor() as i64)),
                 id: item.id(),
             }
         }).collect())

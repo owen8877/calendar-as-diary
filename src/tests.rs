@@ -1,5 +1,7 @@
 use calendar3::api::{Calendar, CalendarListEntry};
 
+use crate::league_of_graphs::LeagueOfGraphs;
+
 use super::*;
 
 #[tokio::test]
@@ -25,7 +27,7 @@ async fn get_all_calendars(hub: &mut CalHub) -> Option<Vec<CalendarListEntry>> {
 }
 
 #[tokio::test]
-async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_integration() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let mut hub = init_hub().await;
 
@@ -59,6 +61,7 @@ async fn test_integration() -> Result<(), Box<dyn std::error::Error>> {
 
             let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
                 // Bilibili::new(Some(calendar_id.clone())),
+                LeagueOfGraphs::new(Some(calendar_id.clone())),
                 // LeagueOfLegends::new(Some(calendar_id.clone())),
                 // Netflix::new(Some(calendar_id.clone())),
                 // Wakatime::new(Some(calendar_id.clone())),
@@ -88,6 +91,7 @@ async fn test_fetch() -> Result<(), Box<dyn Error>> {
 
     let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
         // Bilibili::new(None),
+        LeagueOfGraphs::new(None),
         // LeagueOfLegends::new(None),
         // Netflix::new(None),
         UTOdenSeminar::new(None),
@@ -111,6 +115,7 @@ async fn test_dump() -> Result<(), Box<dyn Error>> {
 
     let modules: Vec<Box<dyn Module>> = filter_loaded_modules(vec![
         // Bilibili::new(None),
+        LeagueOfGraphs::new(None),
         // LeagueOfLegends::new(None),
         // Netflix::new(None),
         UTOdenSeminar::new(None),
@@ -165,19 +170,19 @@ fn test_filter_event() {
         EventWithId {
             summary: "1".to_string(),
             description: "".to_string(),
-            duration: StartEnd((Utc::now() - Duration::hours(2), Utc::now() - Duration::hours(1) - Duration::minutes(30))),
+            duration: StartEnd(Utc::now() - Duration::hours(2), Utc::now() - Duration::hours(1) - Duration::minutes(30)),
             id: "".to_string(),
         },
         EventWithId {
             summary: "2".to_string(),
             description: "".to_string(),
-            duration: StartEnd((Utc::now() - Duration::hours(3), Utc::now() - Duration::minutes(30))),
+            duration: StartEnd(Utc::now() - Duration::hours(3), Utc::now() - Duration::minutes(30)),
             id: "".to_string(),
         },
         EventWithId {
             summary: "3".to_string(),
             description: "".to_string(),
-            duration: StartEnd((Utc::now() - Duration::minutes(40), Utc::now() + Duration::minutes(30))),
+            duration: StartEnd(Utc::now() - Duration::minutes(40), Utc::now() + Duration::minutes(30)),
             id: "".to_string(),
         },
         EventWithId {

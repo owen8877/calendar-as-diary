@@ -250,7 +250,7 @@ impl Module for Youtube {
             EventWithId {
                 summary: format!("[Youtube] {}", item.title),
                 description: format!("[link] {}\n[author] {}\n[hash] {}", item.link, item.author, item.id()),
-                duration: StartEnd((start_time, end_time)),
+                duration: StartEnd(start_time, end_time),
                 id: item.id(),
             }
         }).collect())

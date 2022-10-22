@@ -105,7 +105,7 @@ impl Module for Bilibili {
             EventWithId {
                 summary: format!("[Bilibili] {}", item.title),
                 description: format!("[link] {}\n[bvid] {}\n[hash] {}", item.redirect_link, item.bvid, item.id()),
-                duration: StartEnd((start_time, end_time)),
+                duration: StartEnd(start_time, end_time),
                 id: item.id(),
             }
         }).collect())
